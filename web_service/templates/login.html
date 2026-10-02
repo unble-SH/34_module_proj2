@@ -81,11 +81,15 @@
         </button>
 
     </form>
-
-    <a class="register" href="{{ url_for('register') }}">
-        회원가입
+   <div style="text-align: center; margin-top: 15px;">
+        <a class="register" style="display: inline;" href="{{ url_for('find_password') }}">
+         비밀번호 찾기
+        </a>
+        <span style="color: #ccc; margin: 0 10px;">|</span>
+        <a class="register" style="display: inline;" href="{{ url_for('register') }}">
+         회원가입
     </a>
-
+    </div>
 </div>
 
 </body>
