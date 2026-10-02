@@ -1,0 +1,54 @@
+{
+  "$defs": {
+    "IsmsPPick": {
+      "properties": {
+        "criterion_id": {
+          "description": "ISMS-P 인증기준 번호. 예: 2.6.6",
+          "title": "Criterion Id",
+          "type": "string"
+        },
+        "relevance": {
+          "description": "가장 직접적인 기준 하나만 primary",
+          "enum": [
+            "primary",
+            "secondary"
+          ],
+          "title": "Relevance",
+          "type": "string"
+        },
+        "reason": {
+          "description": "진단 근거의 어떤 사실이 이 기준의 어떤 요구를 미충족하는지 한두 문장",
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "criterion_id",
+        "relevance",
+        "reason"
+      ],
+      "title": "IsmsPPick",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "isms_p": {
+      "items": {
+        "$ref": "#/$defs/IsmsPPick"
+      },
+      "title": "Isms P",
+      "type": "array"
+    },
+    "notes": {
+      "description": "특이사항. 없으면 빈 문자열",
+      "title": "Notes",
+      "type": "string"
+    }
+  },
+  "required": [
+    "isms_p",
+    "notes"
+  ],
+  "title": "IsmsPMapping",
+  "type": "object"
+}

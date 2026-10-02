@@ -1,0 +1,497 @@
+{
+  "$defs": {
+    "IsmsPCriterion": {
+      "additionalProperties": false,
+      "properties": {
+        "criterion_id": {
+          "title": "Criterion Id",
+          "type": "string"
+        },
+        "ref_id": {
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "mapped_by": {
+          "enum": [
+            "llm",
+            "rule"
+          ],
+          "title": "Mapped By",
+          "type": "string"
+        },
+        "reviewed": {
+          "title": "Reviewed",
+          "type": "boolean"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "criterion_id",
+        "ref_id",
+        "title",
+        "text",
+        "mapped_by",
+        "reviewed",
+        "reason"
+      ],
+      "title": "IsmsPCriterion",
+      "type": "object"
+    },
+    "MappingInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "prompt_version": {
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "generated_at": {
+          "title": "Generated At",
+          "type": "string"
+        },
+        "llm_calls": {
+          "title": "Llm Calls",
+          "type": "integer"
+        },
+        "cache_hits": {
+          "title": "Cache Hits",
+          "type": "integer"
+        },
+        "tokens": {
+          "$ref": "#/$defs/TokenUsage"
+        }
+      },
+      "required": [
+        "method",
+        "model",
+        "prompt_version",
+        "generated_at",
+        "llm_calls",
+        "cache_hits",
+        "tokens"
+      ],
+      "title": "MappingInfo",
+      "type": "object"
+    },
+    "OutputFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "item_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Item Id"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Title"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Status"
+        },
+        "severity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Severity"
+        },
+        "asset": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Asset"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Evidence"
+        },
+        "violated_laws": {
+          "items": {
+            "$ref": "#/$defs/ViolatedLaw"
+          },
+          "title": "Violated Laws",
+          "type": "array"
+        },
+        "isms_p": {
+          "items": {
+            "$ref": "#/$defs/IsmsPCriterion"
+          },
+          "title": "Isms P",
+          "type": "array"
+        },
+        "review_note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review Note"
+        }
+      },
+      "required": [
+        "finding_id",
+        "item_id",
+        "title",
+        "status",
+        "severity",
+        "asset",
+        "evidence",
+        "violated_laws",
+        "isms_p"
+      ],
+      "title": "OutputFinding",
+      "type": "object"
+    },
+    "Reference": {
+      "additionalProperties": false,
+      "properties": {
+        "ref_id": {
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Version"
+        },
+        "effective_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Effective Date"
+        },
+        "source_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source File"
+        }
+      },
+      "required": [
+        "ref_id",
+        "title",
+        "type",
+        "version",
+        "effective_date",
+        "source_file"
+      ],
+      "title": "Reference",
+      "type": "object"
+    },
+    "TokenUsage": {
+      "additionalProperties": false,
+      "properties": {
+        "prompt": {
+          "title": "Prompt",
+          "type": "integer"
+        },
+        "prompt_cached": {
+          "title": "Prompt Cached",
+          "type": "integer"
+        },
+        "completion": {
+          "title": "Completion",
+          "type": "integer"
+        },
+        "estimated_cost_usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Estimated Cost Usd"
+        }
+      },
+      "required": [
+        "prompt",
+        "prompt_cached",
+        "completion",
+        "estimated_cost_usd"
+      ],
+      "title": "TokenUsage",
+      "type": "object"
+    },
+    "ViolatedLaw": {
+      "additionalProperties": false,
+      "properties": {
+        "law_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Law Code"
+        },
+        "ref_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Ref Id"
+        },
+        "law_name": {
+          "title": "Law Name",
+          "type": "string"
+        },
+        "article": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Article"
+        },
+        "paragraph": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Paragraph"
+        },
+        "article_title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Article Title"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text"
+        },
+        "in_force": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "In Force"
+        },
+        "mapped_by": {
+          "enum": [
+            "rule",
+            "rule+llm",
+            "llm"
+          ],
+          "title": "Mapped By",
+          "type": "string"
+        },
+        "reviewed": {
+          "title": "Reviewed",
+          "type": "boolean"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "review_note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review Note"
+        }
+      },
+      "required": [
+        "law_code",
+        "ref_id",
+        "law_name",
+        "article",
+        "paragraph",
+        "article_title",
+        "text",
+        "in_force",
+        "mapped_by",
+        "reviewed",
+        "reason"
+      ],
+      "title": "ViolatedLaw",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scan_id": {
+      "title": "Scan Id",
+      "type": "string"
+    },
+    "scan_date": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Scan Date"
+    },
+    "target_system": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Target System"
+    },
+    "mapping": {
+      "$ref": "#/$defs/MappingInfo"
+    },
+    "references": {
+      "items": {
+        "$ref": "#/$defs/Reference"
+      },
+      "title": "References",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/OutputFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "scan_id",
+    "scan_date",
+    "target_system",
+    "mapping",
+    "references",
+    "findings"
+  ],
+  "title": "ModuleOutput",
+  "type": "object"
+}
