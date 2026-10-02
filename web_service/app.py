@@ -972,23 +972,19 @@ def find_password():
 
     if request.method == 'POST':
         username = request.form.get('username')
-        pw_question = request.form.get('pw_question')
-        pw_answer = request.form.get('pw_answer')
-
+        
+        # 1. 사용자 존재 여부만 확인하거나 student1 계정이면 즉시 임시 비밀번호 발급
         user = User.query.filter_by(username=username).first()
 
-        # 보안 질문 및 답변 검증
-        if user and user.pw_question == pw_question and user.pw_answer == pw_answer:
-            # 취약점 진단 시나리오:
-            # 1. 고정/단순 패턴("temp1234!")으로 패스워드 강제 변경
-            # 2. 웹 브라우저 화면에 재설정된 비밀번호 즉시 노출 (취약 판정 기준)
+        if user:
+            # 취약점 재현: 화면에 고정 임시 비밀번호 즉시 노출
             new_password = "temp1234!"
             user.set_password(new_password)
             db.session.commit()
             
             found_password = new_password
         else:
-            error = "입력하신 정보와 일치하는 계정이 없거나 답변이 올바르지 않습니다."
+            error = "입력하신 사용자 정보를 찾을 수 없습니다."
 
     return render_template('find_password.html', error=error, found_password=found_password)
 
