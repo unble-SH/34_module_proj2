@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>학생 명단</title>
+</head>
+
+<body>
+
+<h1>학생 명단</h1>
+
+<table border="1">
+
+    <tr>
+        <th>학생 ID</th>
+        <th>아이디</th>
+        <th>이름</th>
+        <th>생년월일</th>
+        <th>전화번호</th>
+    </tr>
+
+    {% for student in students %}
+
+    <tr>
+
+        <td>{{ student.user_id }}</td>
+        <td>{{ student.username }}</td>
+        <td>{{ student.name }}</td>
+        <td>{{ student.birth_date }}</td>
+        <td>{{ student.phone }}</td>
+
+    </tr>
+
+    {% endfor %}
+
+</table>
+
+<br>
+
+<a href="{{ url_for('instructor_home') }}">
+    강사 페이지
+</a>
+
+</body>
+</html>

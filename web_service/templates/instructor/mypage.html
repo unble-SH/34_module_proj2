@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>강사 마이페이지</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            width: 600px;
+            margin: 50px auto;
+            padding: 30px;
+
+            background-color: white;
+
+            border-radius: 10px;
+
+            box-shadow:
+                0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-bottom: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            width: 30%;
+            background-color: #f5f5f5;
+            text-align: left;
+        }
+
+        .buttons {
+            margin-top: 20px;
+        }
+
+        .buttons a {
+            display: inline-block;
+            padding: 10px 15px;
+            margin-right: 5px;
+
+            text-decoration: none;
+
+            color: white;
+            background-color: #333;
+
+            border-radius: 5px;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>마이페이지</h1>
+
+    <table>
+
+        <tr>
+            <th>강사 ID</th>
+            <td>{{ user.user_id }}</td>
+        </tr>
+
+        <tr>
+            <th>아이디</th>
+            <td>{{ user.username }}</td>
+        </tr>
+
+        <tr>
+            <th>이름</th>
+            <td>{{ user.name }}</td>
+        </tr>
+
+        <tr>
+            <th>생년월일</th>
+            <td>{{ user.birth_date }}</td>
+        </tr>
+
+        <tr>
+            <th>전화번호</th>
+            <td>{{ user.phone }}</td>
+        </tr>
+
+        <tr>
+            <th>회원 유형</th>
+            <td>강사</td>
+        </tr>
+
+    </table>
+
+
+    <div class="buttons">
+
+        <a href="{{ url_for('instructor_profile') }}">
+            개인정보 수정
+        </a>
+
+        <a href="{{ url_for('instructor_home') }}">
+            강사 페이지
+        </a>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>

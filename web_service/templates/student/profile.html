@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>개인정보 수정</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            width: 500px;
+            margin: 50px auto;
+            padding: 30px;
+
+            background-color: white;
+
+            border-radius: 10px;
+
+            box-shadow:
+                0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+
+            padding: 10px;
+
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        input[readonly] {
+            background-color: #eee;
+        }
+
+        button {
+            width: 100%;
+
+            padding: 12px;
+
+            border: none;
+            border-radius: 5px;
+
+            background-color: #333;
+            color: white;
+
+            cursor: pointer;
+        }
+
+        .error {
+            color: red;
+            margin-bottom: 20px;
+        }
+
+        .back {
+            display: block;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>개인정보 수정</h1>
+
+
+    {% if error %}
+
+        <p class="error">
+            {{ error }}
+        </p>
+
+    {% endif %}
+
+
+    <form method="POST">
+
+        <!-- 아이디는 수정 불가 -->
+
+        <div class="form-group">
+
+            <label>아이디</label>
+
+            <input
+                type="text"
+                value="{{ user.username }}"
+                readonly
+            >
+
+        </div>
+
+
+        <!-- 이름 -->
+
+        <div class="form-group">
+
+            <label>이름</label>
+
+            <input
+                type="text"
+                name="name"
+                value="{{ user.name }}"
+                required
+            >
+
+        </div>
+
+
+        <!-- 생년월일 -->
+
+        <div class="form-group">
+
+            <label>생년월일</label>
+
+            <input
+                type="date"
+                name="birth_date"
+                value="{{ user.birth_date }}"
+                required
+            >
+
+        </div>
+
+
+        <!-- 전화번호 -->
+
+        <div class="form-group">
+
+            <label>전화번호</label>
+
+            <input
+                type="tel"
+                name="phone"
+                value="{{ user.phone }}"
+                required
+            >
+
+        </div>
+
+
+        <button type="submit">
+            수정하기
+        </button>
+
+    </form>
+
+
+    <a
+        class="back"
+        href="{{ url_for('student_mypage') }}"
+    >
+        마이페이지로 돌아가기
+    </a>
+
+</div>
+
+</body>
+
+</html>

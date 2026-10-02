@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>성적 관리</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+
+            background-color: white;
+
+            border-radius: 10px;
+
+            box-shadow:
+                0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        select,
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 30px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f5f5f5;
+        }
+
+        .error {
+            color: red;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+    <h1>학생 성적 관리</h1>
+
+
+    {% if error %}
+
+        <p class="error">
+            {{ error }}
+        </p>
+
+    {% endif %}
+
+
+    <!-- ================================= -->
+    <!-- 성적 입력 -->
+    <!-- ================================= -->
+
+    <h2>성적 입력</h2>
+
+    <form method="POST">
+
+        <div class="form-group">
+
+            <label>
+                과목
+            </label>
+
+            <select
+                name="subject_id"
+                required
+            >
+
+                <option value="">
+                    과목 선택
+                </option>
+
+                {% for subject in subjects %}
+
+                <option value="{{ subject.subject_id }}">
+
+                    {{ subject.subject_name }}
+
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                학생
+            </label>
+
+            <select
+                name="student_id"
+                required
+            >
+
+                <option value="">
+                    학생 선택
+                </option>
+
+                {% for student in students %}
+
+                <option value="{{ student.user_id }}">
+
+                    {{ student.name }}
+                    ({{ student.username }})
+
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                점수
+            </label>
+
+            <input
+                type="number"
+                name="score"
+                min="0"
+                max="100"
+                required
+            >
+
+        </div>
+
+
+        <button type="submit">
+            성적 등록 / 수정
+        </button>
+
+    </form>
+
+
+    <!-- ================================= -->
+    <!-- 성적 목록 -->
+    <!-- ================================= -->
+
+    <h2>등록된 성적</h2>
+
+    <table>
+
+        <tr>
+
+            <th>과목</th>
+            <th>학생</th>
+            <th>점수</th>
+
+        </tr>
+
+
+        {% for grade in grades %}
+
+        <tr>
+
+            <td>
+                {{ grade.subject.subject_name }}
+            </td>
+
+            <td>
+                {{ grade.student.name }}
+            </td>
+
+            <td>
+                {{ grade.score }}
+            </td>
+
+        </tr>
+
+        {% else %}
+
+        <tr>
+
+            <td colspan="3">
+                등록된 성적이 없습니다.
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+
+    <a href="{{ url_for('instructor_subjects') }}">
+        과목 관리
+    </a>
+
+    <br>
+
+    <a href="{{ url_for('instructor_home') }}">
+        강사 페이지
+    </a>
+
+</div>
+
+</body>
+
+</html>

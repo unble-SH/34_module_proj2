@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>학생 페이지</title>
+</head>
+
+<body>
+
+<h1>학생 페이지</h1>
+
+<p>
+    환영합니다, {{ current_user.name }}님
+</p>
+
+<hr>
+
+<h2>학생 메뉴</h2>
+
+<ul>
+    <li>
+        <a href="{{ url_for('student_mypage') }}">
+            마이페이지
+        </a>
+    </li>
+
+    <li>
+        <a href="{{ url_for('student_profile') }}">
+            개인정보 수정
+        </a>
+    </li>
+
+    <li>
+        <a href="{{ url_for('student_grades') }}">
+            내 성적 확인
+        </a>
+    </li>
+
+    <li>
+        <a href="{{ url_for('student_inquiries') }}">
+            문의 게시판
+        </a>
+    </li>
+</ul>
+
+<hr>
+
+<a href="{{ url_for('logout') }}">
+    로그아웃
+</a>
+
+</body>
+</html>

@@ -136,6 +136,9 @@ celerybeat.pid
 *.aof
 *.pid
 
+# SQLite
+*.db
+
 # RabbitMQ
 mnesia/
 rabbitmq/

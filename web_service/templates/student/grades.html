@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>내 성적</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            width: 700px;
+            margin: 50px auto;
+            padding: 30px;
+
+            background-color: white;
+
+            border-radius: 10px;
+
+            box-shadow:
+                0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f5f5f5;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+    <h1>내 성적</h1>
+
+
+    <table>
+
+        <tr>
+
+            <th>과목</th>
+            <th>담당 강사</th>
+            <th>점수</th>
+
+        </tr>
+
+
+        {% for grade in grades %}
+
+        <tr>
+
+            <td>
+                {{ grade.subject.subject_name }}
+            </td>
+
+            <td>
+                {{ grade.instructor.name }}
+            </td>
+
+            <td>
+                {{ grade.score }}
+            </td>
+
+        </tr>
+
+        {% else %}
+
+        <tr>
+
+            <td colspan="3">
+                등록된 성적이 없습니다.
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </table>
+
+
+    <a href="{{ url_for('student_home') }}">
+        학생 페이지
+    </a>
+
+</div>
+
+</body>
+
+</html>
