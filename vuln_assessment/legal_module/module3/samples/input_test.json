@@ -1,0 +1,23 @@
+{
+  "scan_id": "SCAN-2026-002",
+  "scan_date": "2026-10-02",
+  "target_system": "모의 교육 플랫폼",
+  "findings": [
+    {
+      "item_id": "W-03",
+      "title": "불충분한 권한 검증",
+      "status": "취약",
+      "severity": "상",
+      "asset": { "id": "WEB01", "name": "교육 플랫폼 웹서버", "handles_personal_data": true },
+      "evidence": "수강생 계정으로 로그인한 뒤 성적 조회 URL의 student_id 값을 다른 번호로 바꾸면 다른 수강생의 이름, 연락처, 성적이 그대로 조회됨. 서버에서 요청자 본인 여부를 확인하지 않음"
+    },
+    {
+      "item_id": "W-02",
+      "title": "약한 비밀번호 정책",
+      "status": "양호",
+      "severity": "상",
+      "asset": { "id": "WEB01", "name": "교육 플랫폼 웹서버", "handles_personal_data": true },
+      "evidence": "비밀번호 8자 이상, 영문·숫자·특수문자 조합을 강제하고 연속 문자와 아이디 포함을 차단함"
+    }
+  ]
+}

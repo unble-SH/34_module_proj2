@@ -1,0 +1,55 @@
+{
+  "scan_id": "SCAN-2026-001",
+  "scan_date": "2026-10-02",
+  "target_system": "모의 교육 플랫폼",
+  "findings": [
+    {
+      "item_id": "W-01",
+      "title": "정보 누출",
+      "status": "취약",
+      "severity": "중",
+      "asset": { "id": "WEB01", "name": "교육 플랫폼 웹서버", "handles_personal_data": true },
+      "evidence": "존재하지 않는 페이지 요청 시 오류 화면에 DB 종류·버전과 서버 내부 파일 경로가 그대로 출력되고, HTTP 응답 헤더(Server, X-Powered-By)에 웹서버와 프레임워크 버전이 노출됨"
+    },
+    {
+      "item_id": "W-02",
+      "title": "약한 비밀번호 정책",
+      "status": "취약",
+      "severity": "상",
+      "asset": { "id": "WEB01", "name": "교육 플랫폼 웹서버", "handles_personal_data": true },
+      "evidence": "회원가입과 비밀번호 변경에서 '1234', 'aaaa' 같은 4자리 비밀번호가 허용되고 길이·문자 조합·연속 문자 제한이 없음"
+    },
+    {
+      "item_id": "W-03",
+      "title": "불충분한 권한 검증",
+      "status": "취약",
+      "severity": "상",
+      "asset": { "id": "WEB01", "name": "교육 플랫폼 웹서버", "handles_personal_data": true },
+      "evidence": "일반 회원으로 로그인한 뒤 마이페이지 URL의 user_id 값을 바꾸면 다른 회원의 이름·연락처·수강 내역이 조회되고, /admin/ 경로의 일부 기능이 관리자 권한 확인 없이 실행됨"
+    },
+    {
+      "item_id": "W-04",
+      "title": "취약한 비밀번호 복구 절차",
+      "status": "취약",
+      "severity": "상",
+      "asset": { "id": "WEB01", "name": "교육 플랫폼 웹서버", "handles_personal_data": true },
+      "evidence": "비밀번호 찾기에서 본인 확인이 아이디와 생년월일만으로 이루어지고, 임시 비밀번호가 화면에 직접 표시되며 재설정 링크에 유효시간이 없음"
+    },
+    {
+      "item_id": "W-05",
+      "title": "불충분한 인증 절차",
+      "status": "취약",
+      "severity": "상",
+      "asset": { "id": "WEB01", "name": "교육 플랫폼 웹서버", "handles_personal_data": true },
+      "evidence": "로그인 실패 횟수 제한과 계정 잠금이 없어 무차별 대입이 가능하고, 관리자 로그인에도 2차 인증이 적용되어 있지 않음"
+    },
+    {
+      "item_id": "W-06",
+      "title": "세션 타임아웃 설정",
+      "status": "양호",
+      "severity": "중",
+      "asset": { "id": "WEB01", "name": "교육 플랫폼 웹서버", "handles_personal_data": true },
+      "evidence": "30분 미사용 시 세션이 만료되고 재로그인을 요구함"
+    }
+  ]
+}

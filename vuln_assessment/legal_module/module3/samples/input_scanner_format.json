@@ -1,0 +1,30 @@
+{
+  "scan_id": "SCAN-2026-003",
+  "target_url": "http://localhost:5000/",
+  "results": [
+    {
+      "path": "http://localhost:5000/login",
+      "content": ["<!-- 테스트 계정: student1 / student123 -->"],
+      "category": "주석 내 정보 누출",
+      "result": "vulnerable",
+      "severity": "high",
+      "reason": "로그인 페이지 HTML 주석에 실제 로그인 가능한 테스트 계정의 아이디와 비밀번호가 남아 있어 누구나 열람할 수 있음"
+    },
+    {
+      "path": "http://localhost:5000/student/profile",
+      "content": ["이름: 김철수", "연락처: 010-1234-5678", "주민등록번호: 990101-1******"],
+      "category": "중요 정보 마스킹 미흡",
+      "result": "pass",
+      "severity": "low",
+      "reason": "본인 프로필 페이지이며 주민등록번호 뒷자리가 마스킹되어 있어 양호"
+    },
+    {
+      "path": "http://localhost:5000/student/grades?id=999",
+      "content": ["Traceback (most recent call last): File \"/app/routes.py\", line 88", "sqlite3.OperationalError: no such column"],
+      "category": "에러페이지 정보 노출",
+      "result": "vulnerable",
+      "severity": "medium",
+      "reason": "존재하지 않는 id 요청 시 스택 트레이스와 서버 내부 경로, DB 종류가 응답에 그대로 노출됨"
+    }
+  ]
+}
