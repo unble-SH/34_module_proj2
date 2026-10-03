@@ -1,6 +1,5 @@
 import requests
 import re
-import os
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -8,17 +7,12 @@ from dotenv import load_dotenv
 from bs4 import BeautifulSoup, Comment
 from urllib.parse import urljoin
 
-import json
 from typing import Literal, List
 from pydantic import BaseModel, Field
 
-#-----------------전역 변수 선언-------------------------
-url = "http://localhost:5000/"
-data = {
-    "username" : "student1",
-    "password" : "student123"
-}
-
+#-------------------------------------------------------
+# 전역 변수 선언
+#-------------------------------------------------------
 keywords = [ # 로그인 후 개인정보 접근 페이지 후보
     "mypage",
     "my-page",
@@ -53,12 +47,23 @@ patterns = { # 주석 내 정보 확인 패턴
             r"\b(?:디버그|디버깅|스택\s*트레이스|예외|에러|로그)\b"
         ],
     }
-#-------------------------------------------------------
 
-#------------------openai 출력 구조화--------------------
+reason_format = { # 판단 근거 포매팅
+    "vuln_comment" : "계정정보, 시스템 파악에 사용될 수 있는 디버그 정보 등이 주석에 존재",
+    "pass_comment" : "주석 내에 중요하거나 민감한 정보가 포함되지 않음",
+    "unknown_comment" : "주석에 노출된 정보의 중요도를 판단할 근거 부족",
+    "vuln_info" : "주민등록번호, 금융 정보 등의 중요 정보가 마스킹 없이 노출되고 있음",
+    "pass_info" : "중요 정보가 마스킹되어있거나 평문으로 노출되지 않음",
+    "unknown_info" : "중요 정보가 노출되고 있는지 판단할 근거 부족"
+}
+
+
+#-------------------------------------------------------
+# openai 출력 구조화
+#-------------------------------------------------------
 class ResponseFormat(BaseModel):
     path: str = Field(description="정보가 확인된 url 경로")
-    content : List[str] = Field(description="확인된 정보")
+    content : List[str] = Field(description="확인된 정보. 별도의 설명 없이 파악된 정보만 넣을 것")
     category: Literal["주석 내 정보 누출", "중요 정보 마스킹 미흡", "에러페이지 정보 노출"] = Field(description="발견된 취약점 유형")
     result: Literal["vulnerable", "pass", "unknown"] = Field(description="노출된 정보를 취약, 양호, 판단 불가로 구분")
     severity: Literal["high", "medium", "low"] = Field(description="""
@@ -68,8 +73,19 @@ class ResponseFormat(BaseModel):
                                                 중요 정보가 마스킹 없이 노출되거나 즉시 취약점이 될 수 있는 정보가 노출되면 high
                                                 """)
     reason: str = Field(description="판단 근거")
-#-------------------------------------------------------
 
+#-------------------------------------------------------
+# 함수 정의
+#-------------------------------------------------------
+def make_result(path, content, category, result, severity, reason):
+    return {
+        "path" : path,
+        "content" : content,
+        "category" : category,
+        "result" : result,
+        "severity" : severity,
+        "reason" : reason
+    }
 def check_comment(session, url, client):
     """
     제공된 url의 html 파일 내의 주석 검사<br>
@@ -113,7 +129,7 @@ def check_comment(session, url, client):
                 "content" : f"""
                 다음은 {url}경로의 html 주석 내 계정 정보, 디버그 정보로 추정되는 내용임
                 "comment"는 주석의 내용, "types"는 추측되는 해당 내용의 유형
-                실제로 중요한 정보가 주석에 포함되었는지 판단할 것
+                실제로 중요하거나 민감한 정보가 주석에 포함되었는지 판단할 것
                 확실한 근거가 없다면 unknown
                 """ 
             },
@@ -228,11 +244,13 @@ def check_personal_info(session, url, client):
                 "content" : f"""
                 다음은 {url}경로에서 표시되는 정보들로, 로그인한 상태에서 접근 가능한 본인의 개인정보임
                 딕셔너리 형태이며 key는 분류, value는 값
-                개인정보 및 중요한 정보가 노출되는지, 취약한지 확인할 것
-                개인정보는 이름, 생년월일, 연락처 등
-                중요 정보는 비밀번호, 금융정보, 주민등록번호 등
-                중요 정보가 있더라도 적절하게 마스킹이 되어있다면 양호한 것으로 판단
-                확실한 근거가 없다면 unknown
+                1. 개인정보 및 중요한 정보가 노출되는지, 취약한지 확인할 것
+                2. 개인정보는 이름, 생년월일, 연락처 등
+                3. 중요 정보는 비밀번호, 금융정보, 주민등록번호 등
+                4. 중요 정보가 있더라도 적절하게 마스킹이 되어있다면 양호한 것으로 판단
+                5. 중요 정보가 마스킹 없이 노출된다면 고위험 취약점으로 판단
+                6. 중요 정보 없이 개인정보만 노출되어있으면 양호한 것으로 판단
+                7. 확실한 근거가 없다면 unknown
                 """ 
             },
             {
@@ -245,17 +263,27 @@ def check_personal_info(session, url, client):
 
     return response.output_parsed
 
+#-------------------------------------------------------
+# 메인 모듈에서 호출할 함수
+#-------------------------------------------------------
 def check_leak_info(url, client):
+    """
+    주어진 url에 대해 정보 누출 취약점이 존재하는지 확인
+    """
     session = requests.Session()
     results = []
+    data = {
+            "username" : "student1",
+            "password" : "student123"
+            }
 
     # 로그인 화면 검사 및 로그인
     login_url = urljoin(url, "/login")
     result = check_comment(session, login_url, client)
     if result: # 검사 결과가 존재하면 append
-        results.append(result)
+        results.append(result.model_dump())# json 형식으로 변환
 
-    r = session.post(login_url, data=data) # data : student1/student123
+    r = session.post(login_url, data=data)
     if r.history[0].status_code // 100 != 3: # redirect 되지 않았다면 로그인 실패로 간주
         print("로그인 실패")
         return results
@@ -265,15 +293,17 @@ def check_leak_info(url, client):
     for path in info_candidate:
         result = check_comment(session, path, client) # 각 경로의 주석 확인
         if result:
-            results.append(result)
+            results.append(result.model_dump()) 
 
         result = check_personal_info(session, path, client) # 각 경로의 개인정보 노출 확인
         if result:
-            results.append(result)
+            results.append(result.model_dump())
 
     return results
 
-
+#-------------------------------------------------------
+# 테스트용
+#-------------------------------------------------------
 if __name__=="__main__":
     load_dotenv()
     client = OpenAI() # 환경 변수 OPENAI_API_KEY 자동 인식
