@@ -1,0 +1,277 @@
+{% set team = "SK쉴더스 루키즈 34기 1석삼조 팀" %}<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>{{ context.report_title }} 상세 보고서</title>
+<style>
+{% include "_common.css.j2" %}
+
+@page {
+  size: A4;
+  margin: 24mm 20mm 22mm 22mm;
+  @top-left   { content: "{{ context.report_title }}  |  {{ scan.scan_id }}-T"; font: 400 8pt "ReportPretendard"; color: #727171; vertical-align: bottom; padding-bottom: 4mm; }
+  @top-right  { content: element(logo); vertical-align: bottom; padding-bottom: 3mm; }
+  @bottom-center { content: counter(page); font: 400 8.5pt "ReportPretendard"; color: #727171; }
+}
+@page :first {
+  @top-left { content: none; } @top-right { content: none; } @bottom-center { content: none; }
+}
+
+/* 실무진용은 읽기가 우선: 브랜드 요소는 로고뿐, 나머지는 회색 계열 */
+body { font-size: 9.6pt; line-height: 1.68; }
+.logo-run img { height: 8mm; }
+
+/* 표지 */
+.cover { break-after: page; }
+.cover-logo { height: 17mm; }
+.cover .disclaimer { margin-top: 5mm; font-size: 8.5pt; color: var(--gray); }
+.cover .doc-type { font-size: 12pt; font-weight: 600; color: var(--gray); margin-top: 48mm; }
+.cover h1 { font-size: 27pt; font-weight: 700; color: var(--charcoal); line-height: 1.3; margin-top: 4mm; }
+.cover .org { font-size: 13pt; color: var(--gray); margin-top: 4mm; }
+.cover .rule { height: 1.5px; width: 28mm; background: var(--charcoal); margin-top: 12mm; }
+.cover table.grid { margin-top: 85mm; width: 100%; }
+
+/* 제목 */
+h2 { font-size: 15pt; font-weight: 700; color: var(--charcoal); margin: 0 0 4mm; padding-bottom: 2mm; border-bottom: 1.5px solid var(--charcoal); break-after: avoid; }
+h2.new { break-before: page; }
+h3 { font-size: 11.5pt; font-weight: 700; color: var(--charcoal); margin: 7mm 0 2.5mm; break-after: avoid; }
+p + p { margin-top: 2mm; }
+.muted { color: var(--gray); }
+.risk-word { font-weight: 700; color: var(--risk); }
+
+/* 일반 표 */
+table.grid { width: 100%; border-collapse: collapse; margin-top: 1mm; }
+table.grid th, table.grid td { border: 0.6pt solid var(--line); padding: 1.6mm 2.4mm; vertical-align: top; text-align: left; }
+table.grid thead th { background: var(--tint); font-weight: 600; color: var(--charcoal); }
+table.grid tbody th { background: var(--tint); font-weight: 600; color: var(--charcoal); width: 30mm; white-space: nowrap; }
+table.grid td.c, table.grid th.c { text-align: center; }
+table.grid tr { break-inside: avoid; }
+.status-vuln { font-weight: 700; color: var(--red); }
+.status-ok { color: var(--gray); }
+
+/* 취약점 상세: 국내 진단 보고서식 항목표. 머리줄 왼쪽 막대만 위험도 색 */
+.finding { margin-top: 8mm; }
+.finding:first-of-type { margin-top: 2mm; }
+.f-head {
+  display: grid; grid-template-columns: auto 1fr auto; column-gap: 3mm; align-items: baseline;
+  padding: 2.4mm 3mm; background: #E9E9E9; color: var(--charcoal);
+  border: 0.6pt solid var(--line); border-bottom: none;
+  border-left: 4px solid var(--gray);
+  break-after: avoid;
+}
+.finding.f-h .f-head { border-left-color: var(--red); }
+.finding.f-m .f-head { border-left-color: var(--orange); }
+.f-head .num { font-weight: 700; color: var(--gray); }
+.f-head .ttl { font-size: 11pt; font-weight: 700; }
+.f-head .sev { background: #FFFFFF; font-size: 9pt; padding: 0 1.2mm; }
+.finding table.grid { margin-top: 0; }
+.finding table.grid tbody th { width: 26mm; }
+pre {
+  margin-top: 1.6mm; padding: 2mm 2.6mm; background: #F6F6F6; border-left: 2px solid var(--line);
+  font-size: 8.2pt; line-height: 1.5; white-space: pre-wrap; word-break: break-all;
+}
+.law + .law { margin-top: 2.6mm; padding-top: 2.6mm; border-top: 0.6pt dashed var(--line); }
+.law .head { font-weight: 600; }
+.law blockquote { margin-top: 1mm; color: var(--gray); font-size: 8.8pt; }
+.law .why { margin-top: 1mm; font-size: 8.8pt; }
+.missing { color: var(--gray); font-style: normal; }
+ul.plain { padding-left: 4.5mm; }
+ul.plain li + li { margin-top: 1mm; }
+table.grid td.r { text-align: right; white-space: nowrap; }
+.formula { margin-top: 2mm; font-size: 8.8pt; color: var(--gray); }
+</style>
+</head>
+<body>
+{% if logo_uri %}<div class="logo-run"><img src="{{ logo_uri }}" alt="SK쉴더스 루키즈"></div>{% endif %}
+
+<!-- 표지 -->
+<section class="cover">
+  {% if logo_uri %}<img class="cover-logo" src="{{ logo_uri }}" alt="SK쉴더스 루키즈">{% endif %}
+  <p class="doc-type">상세 진단 보고서 (실무진용)</p>
+  <h1>{{ context.report_title|kw }}</h1>
+  <p class="org">{{ context.org_name }} {{ context.service_name }}</p>
+  <div class="rule"></div>
+  <table class="grid">
+    <tbody>
+      <tr><th>문서 번호</th><td>{{ scan.scan_id }}-T</td><th>진단 일자</th><td>{{ scan.scan_date }}</td></tr>
+      <tr><th>진단 대상</th><td>{{ scan.target_system }}</td><th>작성일</th><td>{{ today }}</td></tr>
+      <tr><th>작성</th><td>{{ team }}</td><th>대상 독자</th><td>정보보호·개발·운영 담당자</td></tr>
+    </tbody>
+  </table>
+  {% if context.disclaimer %}<p class="disclaimer">{{ context.disclaimer }}</p>{% endif %}
+</section>
+
+<!-- 1. 진단 개요 -->
+<h2>1. 진단 개요</h2>
+
+<h3>1.1 대상 및 범위</h3>
+<table class="grid">
+  <thead><tr><th>자산</th><th>자산 ID</th><th class="c">개인정보 처리</th><th class="c">점검 항목</th></tr></thead>
+  <tbody>
+  {% for a in assets %}
+    <tr><td>{{ a.name }}</td><td>{{ a.id }}</td><td class="c">{{ '처리' if a.handles_personal_data else '미처리' }}</td><td class="c">{{ a.count }}개</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h3>1.2 적용 기준</h3>
+<table class="grid">
+  <thead><tr><th>구분</th><th>문서</th><th>버전</th><th>시행일</th></tr></thead>
+  <tbody>
+  {% for r in scan.references %}
+    <tr><td>{{ r.type }}</td><td>{{ r.title }}</td><td>{{ r.version }}</td><td>{{ r.effective_date or '-' }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h3>1.3 법령·인증기준 매핑 방식</h3>
+<p>
+  취약점과 법령·ISMS-P 인증기준의 매핑은 {{ 'AI(LLM) 자동 매핑' if scan.mapping.method == 'llm' else scan.mapping.method }}으로 수행했습니다
+  (모델 {{ scan.mapping.model }}, 프롬프트 {{ scan.mapping.prompt_version }}).
+  담당자 검토를 마친 매핑은 <span class="review yes">검토 완료</span>, 아직 확인하지 않은 매핑은 <span class="review no">검토 전</span>으로 표시합니다.
+  현재 검토 전 매핑은 {{ stats.unreviewed_mappings }}건입니다.
+</p>
+
+<!-- 2. 결과 요약 -->
+<h2 class="new">2. 진단 결과 요약</h2>
+<p>점검 {{ stats.total }}개 항목 중 취약 {{ stats.vuln }}개, 양호 {{ stats.good }}개{% if stats.other %}, 기타 {{ stats.other }}개{% endif %}입니다.
+   전체 위험 수준은 <span class="risk-word">{{ risk.level }}</span>({{ risk.reason }})으로 판정했습니다.</p>
+
+<h3>2.1 위험도별 현황</h3>
+<table class="grid" style="width: 60%">
+  <thead><tr><th>위험도</th><th class="c">취약 항목</th></tr></thead>
+  <tbody>
+  {% for s in ['상', '중', '하'] %}
+    <tr><td><span class="sev sev-{{ s|sev }}">{{ s }}</span></td><td class="c">{{ stats.by_sev[s] }}개</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<h3>2.2 항목별 결과</h3>
+<table class="grid">
+  <thead><tr><th>항목</th><th>점검 항목</th><th>대상 자산</th><th class="c">위험도</th><th class="c">결과</th></tr></thead>
+  <tbody>
+  {% for f in findings_sorted %}
+    <tr>
+      <td>{{ f.item_id }}</td><td>{{ f.title }}</td><td>{{ f.asset.name }}</td>
+      <td class="c"><span class="sev sev-{{ f.severity|sev }}">{{ f.severity }}</span></td>
+      <td class="c {{ 'status-vuln' if f.status == '취약' else 'status-ok' }}">{{ f.status }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+<!-- 3. 취약점 상세 -->
+<h2 class="new">3. 취약점 상세</h2>
+{% for f in vulns %}
+{% set note = llm.finding_notes.get(f.finding_id, {}) %}
+{% set item = catalog.get(f.item_id, {}) %}
+<section class="finding f-{{ f.severity|sev }}">
+  <div class="f-head">
+    <span class="num">3.{{ loop.index }}</span>
+    <span class="ttl">{{ f.title }} ({{ f.item_id }})</span>
+    <span class="sev sev-{{ f.severity|sev }}">{{ f.severity }}</span>
+  </div>
+  <table class="grid">
+    <tbody>
+      <tr><th>식별 번호</th><td>{{ f.finding_id }}</td></tr>
+      <tr><th>대상 자산</th><td>{{ f.asset.name }} ({{ f.asset.id }}){% if f.asset.handles_personal_data %}, 개인정보 처리{% endif %}</td></tr>
+      <tr><th>설명</th><td>{{ note.description or '' }}{% if not note.description %}<em class="missing">설명 없음</em>{% endif %}</td></tr>
+      <tr><th>영향</th><td>{{ note.impact or '' }}{% if not note.impact %}<em class="missing">영향 설명 없음</em>{% endif %}</td></tr>
+      <tr><th>현황</th><td>
+        {% if f.evidence %}{{ f.evidence.summary }}{% if f.evidence.detail %}<pre>{{ f.evidence.detail }}</pre>{% endif %}
+        {% else %}<em class="missing">진단 데이터에 현황 정보가 없습니다.</em>{% endif %}
+      </td></tr>
+      <tr><th>판단 기준</th><td>{{ item.criterion or '' }}{% if not item.criterion %}<em class="missing">항목 카탈로그에 기준이 없습니다.</em>{% endif %}</td></tr>
+      <tr><th>조치 방법</th><td>{{ item.fix or '' }}{% if not item.fix %}<em class="missing">항목 카탈로그에 조치 방법이 없습니다.</em>{% endif %}</td></tr>
+      <tr><th>관련 법령</th><td>
+        {% for l in f.violated_laws %}
+        <div class="law">
+          <p class="head">{{ laws[l.law_code].label }}
+            {% if l.reviewed %}<span class="review yes">검토 완료</span>{% else %}<span class="review no">검토 전</span>{% endif %}
+            {% if not l.in_force %}<span class="review no">현행 아님</span>{% endif %}</p>
+          {% if l.text and l.text != '...' %}<blockquote>{{ l.text }}</blockquote>{% endif %}
+          {% if l.reason and l.reason != '...' %}<p class="why">매핑 근거: {{ l.reason }}</p>{% endif %}
+        </div>
+        {% else %}<em class="missing">매핑된 법령 없음</em>{% endfor %}
+      </td></tr>
+      <tr><th>ISMS-P</th><td>
+        {% for c in f.isms_p %}
+        <div class="law">
+          <p class="head">{{ c.criterion_id }} {{ c.title }}
+            {% if c.reviewed %}<span class="review yes">검토 완료</span>{% else %}<span class="review no">검토 전</span>{% endif %}</p>
+          {% if c.reason and c.reason != '...' %}<p class="why">매핑 근거: {{ c.reason }}</p>{% endif %}
+        </div>
+        {% else %}<em class="missing">매핑된 인증기준 없음</em>{% endfor %}
+      </td></tr>
+      {% if f.review_note %}<tr><th>매핑 검토 메모</th><td class="muted">{{ f.review_note }}</td></tr>{% endif %}
+    </tbody>
+  </table>
+</section>
+{% else %}
+<p class="muted">취약 항목이 없습니다.</p>
+{% endfor %}
+
+<!-- 4. 부록 -->
+<h2 class="new">4. 부록</h2>
+<h3>4.1 기준 문서 원본</h3>
+<table class="grid">
+  <thead><tr><th>ID</th><th>원본 파일</th></tr></thead>
+  <tbody>
+  {% for r in scan.references %}<tr><td>{{ r.ref_id }}</td><td>{{ r.source_file }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+
+<h3>4.2 보고서 생성 방식</h3>
+<p>결과 판정(위험도, 취약·양호, 전체 위험 수준)은 진단 데이터와 정해진 규칙으로 산출했습니다.
+   설명과 영향 문장은 AI가 작성했으며, 판단 기준과 조치 방법은 항목 카탈로그에서, 법령 조문은 기준 문서 원문에서 그대로 가져왔습니다.</p>
+<p>유사 사례는 개인정보보호위원회 처분 보도자료 원문으로 확인한 사례 카드에서 검색했고, 과징금 노출액과 조치 우선순위는 아래 기준으로 코드가 계산했습니다.
+   금액은 AI를 거치지 않았습니다.</p>
+
+{% set ex = exposure %}{% set cap = ex.legal_cap %}
+<h3>4.3 과징금 노출 산정</h3>
+<table class="grid">
+  <colgroup><col style="width: 30mm"><col style="width: 24mm"><col></colgroup>
+  <thead><tr><th>항목</th><th class="c">값</th><th>근거·설명</th></tr></thead>
+  <tbody>
+    <tr><td>법정 상한</td><td class="r">{{ cap.cap_krw|krw }}</td><td>{{ cap.basis }}. {{ cap.law_basis }}</td></tr>
+    <tr><td>10% 특례 시나리오</td><td class="r">{{ cap.special_10pct.cap_krw|krw }}</td>
+        <td>{% for c in cap.special_10pct.conditions %}{{ c.name }}: {{ '해당 가능' if c.possible else '해당 없음' }} ({{ c.why }}){% if not loop.last %}<br>{% endif %}{% endfor %}</td></tr>
+    <tr><td>투자 감경</td><td class="r">최대 {{ (ex.reductions.investment.max_rate * 100)|int }}%</td>
+        <td>{{ ex.reductions.investment.note }}. 상한 기준 예시 {{ ex.reductions.investment.illustration_on_cap_krw|krw }}</td></tr>
+    <tr><td>ISMS-P 인증 감경</td><td class="r">최대 {{ (ex.reductions.isms_p.max_rate * 100)|int }}%</td>
+        <td>{{ '인증 보유' if ex.reductions.isms_p.certified else '현재 미인증' }}. {{ ex.reductions.isms_p.note }}</td></tr>
+    {% set d = ex.case_evidence.fine_distribution %}
+    <tr><td>유사 처분 사례 과징금</td><td class="r">{% if d %}{{ d.count }}건{% else %}-{% endif %}</td>
+        <td>{% if d %}최소 {{ d.min_krw|krw }}, 중앙값 {{ d.median_krw|krw }}, 최대 {{ d.max_krw|krw }}. {% endif %}{{ ex.case_evidence.note }}{% if d and d.warning %}<br>{{ d.warning }}{% endif %}</td></tr>
+  </tbody>
+</table>
+
+<h3>4.4 조치 우선순위</h3>
+<table class="grid">
+  <thead><tr><th class="c">순위</th><th>점검 항목</th><th class="c">위험도</th><th>사례 근거</th><th class="c">점수</th><th class="c">여기까지 조치 시</th></tr></thead>
+  <tbody>
+  {% for p in ex.priority.ranked %}
+    <tr><td class="c">{{ p.rank }}</td><td>{{ p.title }}</td><td class="c"><span class="sev sev-{{ p.severity|sev }}">{{ p.severity }}</span></td>
+        <td>{{ p.best_evidence|lvl if p.best_evidence else '없음' }}</td><td class="c">{{ p.score }}</td>
+        <td class="c">리스크 {{ ex.priority.top_n_reduction[loop.index0].risk_reduction_pct }}% 감소</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p class="formula">{{ ex.priority.formula }}. 점수는 조치 순서를 정하기 위한 상대값이며 금액이 아닙니다.</p>
+
+<h3>4.5 산정 가정과 제외 항목</h3>
+<ul class="plain">
+  {% for a in ex.assumptions %}<li>{{ a }}</li>{% endfor %}
+</ul>
+{% if ex.excluded %}
+<table class="grid" style="margin-top: 3mm">
+  <thead><tr><th>제외 항목</th><th>사유</th></tr></thead>
+  <tbody>
+  {% for e in ex.excluded %}<tr><td>{{ finding_by_id[e.finding_id].title if e.finding_id in finding_by_id else e.finding_id }}</td><td>{{ e.reason }}</td></tr>{% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+</body>
+</html>

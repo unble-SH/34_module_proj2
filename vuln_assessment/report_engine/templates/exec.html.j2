@@ -1,0 +1,339 @@
+{% set team = "SK쉴더스 루키즈 34기 1석삼조 팀" %}<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>{{ context.report_title }} 경영진 보고</title>
+<style>
+{% include "_common.css.j2" %}
+
+@page {
+  size: 13.333in 7.5in;
+  margin: 0.62in 0.8in 0.72in 1.0in;
+  @top-right    { content: element(logo); vertical-align: middle; }
+  @bottom-left  { content: "{{ team }}  |  {{ scan.scan_id }} 경영진 보고"; font: 400 9pt "ReportPretendard"; color: #727171; }
+  @bottom-right { content: counter(page) " / " counter(pages); font: 400 9pt "ReportPretendard"; color: #727171; }
+}
+@page :first {
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+
+body { font-size: 15pt; line-height: 1.55; }
+.logo-run img { height: 0.36in; }
+
+/* 왼쪽 주황 띠: 매 페이지 반복되는 브랜드 요소 */
+.rail { display: none; }
+@media print {
+  .rail { display: block; position: fixed; left: -1.0in; top: -0.62in; width: 0.2in; height: 7.5in; background: var(--orange); }
+}
+
+.slide { height: 6.16in; position: relative; break-after: page; }
+.slide:last-child { break-after: auto; }
+
+.slide-title {
+  position: relative;
+  font-size: 13pt; font-weight: 600; color: var(--gray);
+  padding-bottom: 0.12in; margin-bottom: 0.32in;
+  border-bottom: 1px solid var(--line);
+}
+.slide-title::after {
+  content: ""; position: absolute; left: 0; bottom: -2px;
+  width: 0.55in; height: 3px; background: var(--orange);
+}
+
+/* 1. 표지 */
+.cover-logo { height: 0.9in; }
+.cover .audience { font-size: 14pt; font-weight: 700; color: var(--orange-ink); margin-top: 0.85in; }
+.cover h1 { font-size: 40pt; font-weight: 700; color: var(--charcoal); line-height: 1.25; margin-top: 0.14in; max-width: 10in; }
+.cover .bar { width: 1.1in; height: 6px; background: var(--orange); margin-top: 0.3in; }
+.cover .org { font-size: 16pt; color: var(--gray); margin-top: 0.24in; }
+.cover-meta { margin-top: 0.85in; border-collapse: collapse; }
+.cover-meta td { padding-right: 0.65in; vertical-align: top; white-space: nowrap; }
+.cover-meta .k { display: block; font-size: 10pt; color: var(--gray); }
+.cover-meta .v { display: block; font-size: 13pt; font-weight: 600; color: var(--charcoal); margin-top: 0.03in; }
+.cover-meta .v.level { color: var(--risk); font-weight: 700; }
+.cover .disclaimer { margin-top: 0.4in; font-size: 10pt; color: var(--gray); }
+
+/* 2. 결론 */
+.headline { font-size: 32pt; font-weight: 700; color: var(--charcoal); line-height: 1.3; max-width: 10.6in; }
+.summary { font-size: 15.5pt; margin-top: 0.26in; max-width: 10.2in; }
+.verdict {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  display: grid; grid-template-columns: 1.25fr 1fr 1fr;
+  border-top: 2px solid var(--orange);
+  padding-top: 0.2in;
+}
+.verdict > div { padding-right: 0.3in; }
+.verdict > div + div { border-left: 1px solid var(--line); padding-left: 0.3in; }
+.v-label { display: block; font-size: 11pt; font-weight: 600; color: var(--gray); }
+.v-word { display: block; font-size: 40pt; font-weight: 700; line-height: 1.15; color: var(--risk); margin-top: 0.04in; }
+.v-num { display: block; font-size: 30pt; font-weight: 700; line-height: 1.3; color: var(--charcoal); margin-top: 0.08in; }
+.v-num small { font-size: 12pt; font-weight: 600; color: var(--gray); margin-left: 0.06in; }
+.v-note { display: block; font-size: 11pt; color: var(--gray); margin-top: 0.04in; }
+
+/* 3. 핵심 위험 */
+.risks { list-style: none; }
+.risk {
+  display: grid; grid-template-columns: 0.62in 1fr;
+  padding: 0.16in 0 0.18in; border-top: 1px solid var(--line);
+}
+.risk:first-child { border-top: none; padding-top: 0; }
+.risk-rank { font-size: 26pt; font-weight: 700; line-height: 1.1; }
+.risk h3 { font-size: 18pt; font-weight: 700; color: var(--charcoal); line-height: 1.35; }
+.risk h3 .sev { font-size: 11pt; margin-left: 0.08in; vertical-align: .2em; }
+.risk .impact { font-size: 13.5pt; margin-top: 0.05in; }
+.risk-refs { margin-top: 0.07in; font-size: 11pt; color: var(--gray); }
+.risk-refs span.ref { display: block; }
+.risk-refs b { font-weight: 600; color: var(--text); margin-right: 0.08in; }
+.risk-refs .money { color: var(--red); font-weight: 600; }
+
+/* 4. 법적 근거와 사례 */
+.two-col { display: grid; grid-template-columns: 1.15fr 1fr; column-gap: 0.5in; }
+.col-title { font-size: 15pt; font-weight: 700; color: var(--charcoal); margin-bottom: 0.14in; }
+table.refs { width: 100%; border-collapse: collapse; font-size: 12pt; }
+table.refs th { text-align: left; font-size: 10.5pt; font-weight: 600; color: var(--gray); padding: 0 0.1in 0.08in 0; border-bottom: 2px solid var(--orange); }
+table.refs td { padding: 0.1in 0.1in 0.1in 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.refs td.n { text-align: center; white-space: nowrap; }
+.cases { list-style: none; }
+.case { padding: 0.09in 0 0.1in; border-bottom: 1px solid var(--line); }
+.case:first-child { padding-top: 0; }
+.case .kind { font-size: 10.5pt; font-weight: 600; color: var(--orange-ink); }
+.case .title { font-size: 13pt; font-weight: 600; color: var(--charcoal); line-height: 1.4; margin-top: 0.02in; }
+.case .outcome { font-size: 12pt; font-weight: 700; color: var(--red); margin-top: 0.02in; }
+.case .kind .src { font-weight: 400; color: var(--gray); margin-left: 0.1in; }
+.more { font-size: 10.5pt; color: var(--gray); margin-top: 0.08in; }
+.footnote { position: absolute; bottom: 0; left: 0; right: 0; font-size: 10.5pt; color: var(--gray); }
+.empty { font-size: 12pt; color: var(--gray); }
+
+/* 5. 과징금 노출: 숫자는 전부 exposure 계산값. 빨강은 '최대 노출액'과 처분 금액에만 */
+.money-grid { display: grid; grid-template-columns: 1.25fr 1fr 1fr; }
+.money-grid > div { padding-right: 0.3in; }
+.money-grid > div + div { border-left: 1px solid var(--line); padding-left: 0.3in; }
+.m-num { display: block; font-size: 26pt; font-weight: 700; line-height: 1.25; color: var(--charcoal); margin-top: 0.06in; white-space: nowrap; }
+.m-num.must { color: var(--red); }
+.m-num.off { color: var(--gray); }
+.m-note { display: block; font-size: 11pt; color: var(--gray); margin-top: 0.05in; line-height: 1.45; }
+.fine-block { margin-top: 0.3in; padding-top: 0.2in; border-top: 1px solid var(--line); }
+.fine-block table.refs td { padding: 0.07in 0.1in 0.07in 0; }
+.fine-block .col-title { margin-bottom: 0.1in; }
+.fine-block .stat { font-size: 11.5pt; color: var(--gray); margin-bottom: 0.08in; }
+table.refs td.money { text-align: right; white-space: nowrap; font-weight: 700; color: var(--red); }
+table.refs th.r { text-align: right; padding-right: 0; }
+table.refs td.dim { color: var(--gray); white-space: nowrap; }
+
+/* 6. 로드맵: 즉시 = 빨강, 단기 = 주황, 중기 = 회색 (위험도 색과 같은 규칙) */
+.roadmap { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 0.32in; }
+.phase-head { border-top: 4px solid var(--gray); padding-top: 0.1in; margin-bottom: 0.16in; }
+.phase-col:nth-child(1) .phase-head { border-top-color: var(--red); }
+.phase-col:nth-child(2) .phase-head { border-top-color: var(--orange); }
+.phase-col:nth-child(1) .phase-name { color: var(--red); }
+.phase-name { font-size: 19pt; font-weight: 700; color: var(--charcoal); }
+.phase-window { font-size: 11pt; color: var(--gray); margin-left: 0.08in; }
+.step { padding: 0.12in 0; border-bottom: 1px solid var(--line); }
+.step:first-of-type { padding-top: 0; }
+.step .action { font-size: 13.5pt; font-weight: 600; line-height: 1.45; color: var(--charcoal); }
+.step .rel { font-size: 10.5pt; color: var(--gray); margin-top: 0.03in; }
+
+/* 7. 결정 요청 */
+.decisions { list-style: none; counter-reset: d; }
+.decisions li { counter-increment: d; display: grid; grid-template-columns: 0.55in 1fr; padding: 0.18in 0; border-bottom: 1px solid var(--line); font-size: 18pt; font-weight: 600; color: var(--charcoal); line-height: 1.4; }
+.decisions li::before { content: counter(d); font-weight: 700; color: var(--orange); }
+.decisions li:first-child { padding-top: 0; }
+</style>
+</head>
+<body>
+<div class="rail"></div>
+{% if logo_uri %}<div class="logo-run"><img src="{{ logo_uri }}" alt="SK쉴더스 루키즈"></div>{% endif %}
+
+<!-- 1. 표지 -->
+<section class="slide cover">
+  {% if logo_uri %}<img class="cover-logo" src="{{ logo_uri }}" alt="SK쉴더스 루키즈">{% endif %}
+  <p class="audience">경영진 보고</p>
+  <h1>{{ context.report_title|kw }}</h1>
+  <div class="bar"></div>
+  <p class="org">{{ context.org_name }} {{ context.service_name }}</p>
+  <table class="cover-meta"><tr>
+    <td><span class="k">전체 위험 수준</span><span class="v level">{{ risk.level }}</span></td>
+    <td><span class="k">진단 일자</span><span class="v">{{ scan.scan_date }}</span></td>
+    <td><span class="k">문서 번호</span><span class="v">{{ scan.scan_id }}-E</span></td>
+    <td><span class="k">작성</span><span class="v">{{ team }}</span></td>
+  </tr></table>
+  {% if context.disclaimer %}<p class="disclaimer">{{ context.disclaimer }}</p>{% endif %}
+</section>
+
+<!-- 2. 결론 -->
+<section class="slide">
+  <h2 class="slide-title">진단 결론</h2>
+  <p class="headline">{{ llm.headline|kw }}</p>
+  <p class="summary">{{ llm.summary|kw }}</p>
+  <div class="verdict">
+    <div>
+      <span class="v-label">전체 위험 수준</span>
+      <span class="v-word">{{ risk.level }}</span>
+      <span class="v-note">{{ risk.reason }}</span>
+    </div>
+    <div>
+      <span class="v-label">취약 항목</span>
+      <span class="v-num">{{ stats.vuln }}<small>건 / 점검 {{ stats.total }}개 항목</small></span>
+      <span class="v-note">상 {{ stats.by_sev['상'] }}건, 중 {{ stats.by_sev['중'] }}건, 하 {{ stats.by_sev['하'] }}건</span>
+    </div>
+    <div>
+      <span class="v-label">영향받는 개인정보 처리 자산</span>
+      <span class="v-num">{{ stats.pd_assets|length }}<small>개</small></span>
+      <span class="v-note">{{ stats.pd_assets|join(', ') if stats.pd_assets else '없음' }}</span>
+    </div>
+  </div>
+</section>
+
+<!-- 3. 핵심 위험 -->
+<section class="slide">
+  <h2 class="slide-title">핵심 위험</h2>
+  {% if llm.top_risks %}
+  <ol class="risks">
+    {% for r in llm.top_risks %}
+    <li class="risk">
+      <div class="risk-rank sev-{{ r.severity|sev }}">{{ loop.index }}</div>
+      <div>
+        <h3>{{ r.title|kw }}<span class="sev sev-{{ r.severity|sev }}">{{ r.severity }}</span></h3>
+        <p class="impact">{{ r.impact|kw }}</p>
+        <p class="risk-refs">
+          {% for l in r.laws %}<span class="ref"><b>관련 법령</b>{{ l.label }}{% if l.unreviewed %} <span class="review no">검토 전</span>{% endif %}</span>{% endfor %}
+          {% for c in r.cases %}<span class="ref"><b>유사 사례</b>{{ c.title }}<span class="lvl">{{ c.level|lvl }}</span> <span class="money">{{ c.outcome }}</span></span>{% endfor %}
+        </p>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="empty">보고할 취약점이 없습니다.</p>
+  {% endif %}
+</section>
+
+<!-- 4. 법적 근거와 유사 사례 -->
+<section class="slide">
+  <h2 class="slide-title">법적 근거와 유사 사례</h2>
+  <div class="two-col">
+    <div>
+      <h3 class="col-title">관련 법령과 인증기준</h3>
+      <table class="refs">
+        <thead><tr><th>조항·기준</th><th>관련 취약점</th><th>상태</th></tr></thead>
+        <tbody>
+          {% for l in laws.values() %}
+          <tr><td>{{ l.label }}</td><td class="n">{{ l.finding_ids|length }}건</td>
+              <td>{% if l.unreviewed %}<span class="review no">검토 전</span>{% else %}<span class="review yes">검토 완료</span>{% endif %}</td></tr>
+          {% endfor %}
+          {% for c in criteria.values() %}
+          <tr><td>ISMS-P {{ c.criterion_id }} {{ c.title }}</td><td class="n">{{ c.finding_ids|length }}건</td>
+              <td>{% if c.unreviewed %}<span class="review no">검토 전</span>{% else %}<span class="review yes">검토 완료</span>{% endif %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3 class="col-title">유사 처분·보도 사례</h3>
+      {% if cases %}
+      <ul class="cases">
+        {% for c in (cases.values()|list)[:4] %}
+        <li class="case">
+          <p class="kind">{{ c.kind }}<span class="src">{{ c.source_short }} {{ c.date }}</span><span class="lvl">{{ (c.cited_level or c.match_level)|lvl }}</span></p>
+          <p class="title">{{ c.title }}</p>
+          <p class="outcome">{{ c.outcome }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if cases|length > 4 %}<p class="more">외 {{ cases|length - 4 }}건은 앞 장의 핵심 위험별 유사 사례에 있습니다.</p>{% endif %}
+      {% else %}
+      <p class="empty">연결된 유사 사례가 없습니다.</p>
+      {% endif %}
+    </div>
+  </div>
+  <p class="footnote">'검토 전'은 AI가 매핑하고 담당자가 아직 확인하지 않은 항목입니다. 확정 전까지는 위반 소지로 보아야 합니다.<br>
+    사례 등급: 동일 결함 = 인증기준과 취약점 유형이 모두 같음, 같은 유형 = 취약점 유형이 같음, 관련 통제 = 인증기준만 같음.</p>
+</section>
+
+<!-- 5. 과징금 노출과 감경 여지 -->
+{% set ex = exposure %}{% set cap = ex.legal_cap %}{% set inv = ex.reductions.investment %}{% set sp = cap.special_10pct %}
+<section class="slide">
+  <h2 class="slide-title">과징금 노출과 감경 여지</h2>
+  <div class="money-grid">
+    <div>
+      <span class="v-label">최대 노출액 (법정 상한)</span>
+      <span class="m-num must">{{ cap.cap_krw|krw }}</span>
+      <span class="m-note">
+        {% if cap.relevant_revenue_krw is not none %}연 매출 {{ cap.relevant_revenue_krw|krw }}의 3%{% else %}매출 산정이 곤란한 경우의 상한{% endif %}.
+        {% set nf = ex.violations|map(attribute='finding_ids')|map('length')|sum %}{% for v in ex.violations %}{{ v.article }}({{ v.article_title }})에 취약점 {{ v.finding_ids|length }}건{% if not loop.last %}, {% endif %}{% endfor %}{% if ex.violations %}{% if nf > 1 %}이 걸려도 상한은 한 번만 적용{% else %} 해당{% endif %}{% endif %}
+      </span>
+    </div>
+    <div>
+      <span class="v-label">투자 감경 반영 시 (예시)</span>
+      <span class="m-num">{{ inv.illustration_on_cap_krw|krw }}</span>
+      <span class="m-note">보호 투자·조치 기록이 있으면 최대 {{ (inv.max_rate * 100)|int }}% 감경.
+        {% if inv.has_record %}투자 기록 있음{% else %}지금은 기록이 없어 감경 근거가 없음{% endif %}</span>
+    </div>
+    <div>
+      <span class="v-label">10% 특례 시나리오</span>
+      <span class="m-num {{ '' if sp.possible else 'off' }}">{{ sp.cap_krw|krw }}</span>
+      <span class="m-note">반복 위반, 1천만 명 이상 피해, 시정명령 불이행으로 유출될 때만.
+        {% if sp.possible %}요건 해당 가능성 있음{% else %}현재 요건 해당 없음{% endif %}</span>
+    </div>
+  </div>
+
+  <div class="fine-block">
+    <h3 class="col-title">같은 유형 결함의 실제 과징금</h3>
+    {% set d = exposure_view.dist %}
+    {% if d %}
+    <p class="stat">유사 처분 {{ d.count }}건 · 최소 {{ d.min_krw|krw }} · 중앙값 {{ d.median_krw|krw }} · 최대 {{ d.max_krw|krw }}</p>
+    <table class="refs">
+      <thead><tr><th>사례</th><th>처분일</th><th class="r">과징금</th></tr></thead>
+      <tbody>
+        {% for c in exposure_view.rows %}
+        <tr><td>{{ c.title }}<span class="lvl">{{ c.match_level|lvl }}</span></td><td class="dim">{{ c.date }}</td><td class="money">{{ c.fine_krw|krw }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">과징금이 부과된 유사 처분 사례가 없습니다.</p>
+    {% endif %}
+  </div>
+
+  <p class="footnote">
+    법정 상한은 최대치이며 예상 부과액이 아닙니다. 실제 부과액은 과징금 부과기준의 산정 단계(기준금액, 감경, 조정)를 거쳐 정해집니다.
+    {% if d and d.median_exceeds_client_cap %}<br>유사 사례 금액이 상한보다 큰 것은 사례 기업의 매출 규모가 더 크기 때문이며, 같은 결함이 실제로 처분받은 규모를 보여주기 위한 참고값입니다.{% endif %}
+  </p>
+</section>
+
+<!-- 6. 조치 로드맵 -->
+<section class="slide">
+  <h2 class="slide-title">조치 로드맵</h2>
+  <div class="roadmap">
+    {% for col in llm.roadmap_by_phase %}
+    <div class="phase-col">
+      <div class="phase-head"><span class="phase-name">{{ col.phase }}</span><span class="phase-window">{{ col.window }}</span></div>
+      {% for s in col.steps %}
+      <div class="step">
+        <p class="action">{{ s.action|kw }}</p>
+        {% if s.finding_ids %}<p class="rel">{% for fid in s.finding_ids %}{{ vuln_by_id[fid].title }}{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+      </div>
+      {% else %}
+      <p class="empty">해당 없음</p>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- 7. 결정 요청 -->
+<section class="slide">
+  <h2 class="slide-title">경영진 결정이 필요한 사항</h2>
+  <ol class="decisions">
+    {% for d in llm.decisions %}<li><span>{{ d|kw }}</span></li>{% endfor %}
+  </ol>
+  <p class="footnote">
+    취약점별 상세 내용과 조치 방법은 실무진용 상세 보고서({{ scan.scan_id }}-T)에 있습니다.
+    {% if stats.unreviewed_mappings %}법령·인증기준 매핑 중 {{ stats.unreviewed_mappings }}건은 아직 담당자 검토 전입니다.{% endif %}
+  </p>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "_note": "조직·서비스 맥락. 진단 JSON에는 없는 정보라 팀이 직접 작성한다. 아래는 가상 값.",
+  "org_name": "러닝브릿지(가상)",
+  "service_name": "온라인 교육 플랫폼",
+  "service_desc": "강의 수강, 과제 제출, 수료증 발급을 제공하는 웹 서비스",
+  "member_count": 120000,
+  "personal_data_items": [
+    "이름",
+    "이메일",
+    "휴대전화번호",
+    "생년월일",
+    "수강 이력"
+  ],
+  "report_title": "모의 교육 플랫폼 취약점 진단 결과",
+  "logo": "assets/rookies_logo.png",
+  "disclaimer": "본 보고서는 SK쉴더스 루키즈 교육과정의 프로젝트 산출물이며, SK쉴더스의 공식 진단 보고서가 아닙니다.",
+  "exposure_profile": {
+    "_note": "4단계 노출액 계산용 가정값. 회원 수는 위의 member_count를 그대로 쓴다.",
+    "industry": "교육·에듀테크",
+    "annual_revenue_krw": 5000000000,
+    "revenue_unrelated_krw": 0,
+    "has_minors_under_14": true,
+    "handles_sensitive_data": false,
+    "handles_unique_id": false,
+    "isms_p_certified": false,
+    "is_public_institution": false,
+    "security_budget_krw": null
+  }
+}
