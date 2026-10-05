@@ -569,7 +569,8 @@ def main():
     args = ap.parse_args()
 
     from dotenv import load_dotenv
-    load_dotenv(BASE / ".env")
+    team_env = BASE.parent / ".env"
+    load_dotenv(team_env if team_env.exists() else BASE / ".env")
 
     scan_raw = normalize_scan(load_json(args.scan))
     out_dir = Path(args.out) if args.out else BASE / "out" / scan_raw["scan_id"]
