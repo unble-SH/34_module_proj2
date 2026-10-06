@@ -12,12 +12,25 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from .config import (CACHE_DIR, NARROW_PROMPT_VERSION, OPENAI_MODEL, OPENAI_REASONING_EFFORT, PRICE_PER_1M,
-                     PROMPT_VERSION)
+from .config import (CACHE_DIR, CRITERIA_FILE, NARROW_PROMPT_VERSION, OPENAI_MODEL, OPENAI_REASONING_EFFORT,
+                     PRICE_PER_1M, PROMPT_VERSION)
 from .ismsp_loader import IsmsP
 from .schemas import IsmsPMapping, ParagraphSelection
 
 CRITERION_ID_RE = re.compile(r'\b([123]\.\d{1,2}\.\d{1,2})\b')
+
+
+def load_criteria() -> str:
+    """팀 공통 판단 기준(criteria.md). 파일이 없으면 빈 문자열."""
+    try:
+        return CRITERIA_FILE.read_text(encoding='utf-8').strip()
+    except OSError:
+        return ''
+
+
+def criteria_block() -> str:
+    text = load_criteria()
+    return ("\n\n## 판단 기준 (팀 합의, 반드시 따를 것)\n" + text) if text else ''
 CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚'
 
 
@@ -200,7 +213,7 @@ class Mapper:
                 return [], "오프라인 모드: 캐시된 LLM 응답 없음"
             # 매 호출 똑같은 기준 목록(약 19k 토큰)을 앞에 두고 취약점을 뒤에 둔다.
             # 앞부분이 같으면 OpenAI가 자동으로 프롬프트 캐시를 적용해 입력 단가가 내려간다.
-            system = (SYSTEM_PROMPT +
+            system = (SYSTEM_PROMPT + criteria_block() +
                       "\n\n## ISMS-P 인증기준 목록 (번호 이름 | 인증기준 요약 | 주요 확인사항 요약)\n" + self._criteria_text)
             user = ("## 취약점 진단 결과\n" + _finding_block(f) +
                     "\n\n위 목록에서 이 취약점이 미충족시키는 기준을 고르세요.")
@@ -252,7 +265,7 @@ class Mapper:
         if raw is None:
             if self.offline:
                 return None, "오프라인 모드: 항 판단 캐시 없음 (조문 전체를 유지)"
-            raw, usage = self._call_llm([{"role": "system", "content": NARROW_PROMPT},
+            raw, usage = self._call_llm([{"role": "system", "content": NARROW_PROMPT + criteria_block()},
                                          {"role": "user", "content": self._narrow_user(f, candidates)}],
                                         ParagraphSelection)
             self._store(key, raw, usage, {"kind": "narrow", "prompt_version": NARROW_PROMPT_VERSION,

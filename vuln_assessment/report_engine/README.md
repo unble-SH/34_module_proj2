@@ -6,8 +6,8 @@
 data/ 폴더의 JSON 4개 (scan, context, cases, item_catalog) + 사례 지식베이스(chroma_db)
    │
    ├─ ① facts     코드    통계, 위험 수준 판정, 사례 검색(case_kb), 노출액 계산(exposure)
-   ├─ ② llm       1회     문장만 생성 → out/llm_output.json 저장
-   ├─ ③ validate  코드    LLM이 지어낸 ID 제거 → out/run_log.json
+   ├─ ② llm       1회     문장만 생성 → out/<scan_id>/llm_output.json 저장
+   ├─ ③ validate  코드    LLM이 지어낸 ID 제거 → out/<scan_id>/run_log.json
    └─ ④ render    코드    같은 데이터 → exec.html.j2 / tech.html.j2 → PDF 2개
 ```
 
@@ -36,7 +36,7 @@ python case_kb.py load       # data/cases.json → data/chroma_db (매번 새로
 # 보고서 만들기
 python engine.py --mock                              # LLM 없이 샘플 문장으로 렌더링 (사례 검색은 실행됨)
 python engine.py                                     # 실제 LLM 1회 호출
-python engine.py --llm-output out/llm_output.json    # 저장된 LLM 출력 재사용 (템플릿만 고칠 때)
+python engine.py --llm-output out/<scan_id>/llm_output.json    # 저장된 LLM 출력 재사용 (템플릿만 고칠 때)
 ```
 
 Windows에서도 WeasyPrint의 Python 패키지 외에 GTK/Pango 런타임이 필요하다. `libgobject-2.0-0` 또는 `libpango-1.0-0` 로드 오류가 발생하면 GTK/Pango를 설치하고 해당 DLL 경로를 `PATH`에 추가한다.
@@ -46,8 +46,9 @@ Windows에서도 WeasyPrint의 Python 패키지 외에 GTK/Pango 런타임이 �
 2. 터미널에서 `echo $DYLD_FALLBACK_LIBRARY_PATH` 가 비어 있으면 `export DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib`
 3. 그래도 안 되면 `.venv`가 맥 기본 파이썬(경로에 `CommandLineTools`가 보임)으로 만들어진 것. `rm -rf .venv` 후 위의 `/opt/homebrew/bin/python3.12 -m venv .venv`부터 다시
 
-결과물: `out/exec_report.pdf`, `out/tech_report.pdf` (같은 이름의 .html은 브라우저 미리보기용),
-`out/exposure_result.json` (노출액 계산 결과), `out/run_log.json` (검증 경고)
+결과물은 진단마다 `out/<scan_id>/` 폴더에 생긴다 (`--out`으로 바꿀 수 있음):
+`exec_report.pdf`, `tech_report.pdf` (같은 이름의 .html은 브라우저 미리보기용),
+`exposure_result.json` (노출액 계산 결과), `run_log.json` (검증 경고), `llm_output.json` (실제 LLM을 호출했을 때만)
 
 ## 파일별 역할
 

@@ -18,7 +18,7 @@ python -m module3 run module3/samples/input_sample.json -o module3/samples/outpu
 ```
 
 API 키는 `.env`의 `OPENAI_API_KEY`로 읽는다. 팀 공용 위치인 `vuln_assessment/.env`(이 폴더의 상위)를 먼저 찾고, 없으면 이 폴더의 `.env`를 쓴다.
-설치: 프로젝트 루트의 공용 `requirements.txt`에 필요한 패키지가 모두 들어 있다. 이 폴더에서 설치할 때는 `pip install -r ../../../requirements.txt`.
+설치: 저장소 루트의 통합 `requirements.txt`에 필요한 패키지(openai, pydantic, python-dotenv)가 모두 들어 있다. `pip install -r ../../requirements.txt` (이 폴더 기준).
 
 ### 입력 형식 두 가지
 
@@ -57,6 +57,8 @@ python -m unittest module3.tests.test_module3 -v
 ```
 
 - LLM은 조문을 추가하지 못한다. 조문 후보는 항상 ISMS-P 인증기준 안내서(2023.11)의 [관련 법규]이고, LLM은 그 안에서 항을 짚고 무관한 조문을 걸러내기만 한다. 항 번호는 원문에 있는 것만 받는다.
+- **판단 기준** `module3/criteria.md`가 1차·2차 프롬프트에 그대로 들어간다. "본인 정보를 본인에게 표시한 것은 유출이 아니다" 같은 팀 합의 기준을 여기에 적으면 실행마다 판단이 흔들리는 문제가 줄어든다. 스캐너 판정 프롬프트에도 같은 파일을 쓰는 것을 권한다. 기준을 고치면 config.py의 PROMPT_VERSION / NARROW_PROMPT_VERSION을 올려 캐시를 무효화할 것.
+- 실행이 끝나면 같은 유형(title)·같은 판정인 항목끼리 결과를 비교해, 기준·조문이 다르면 각 항목 review_note에 "판단 불일치"를 표시한다. 결과를 바꾸지는 않고 사람이 확인하도록 알린다.
 - 2차 판단이 실패하거나(오프라인·API 오류) 응답이 없으면 조문 전체를 유지하고(mapped_by "rule", paragraph null) review_note에 사유를 남긴다.
 - 관련 법규가 없는 기준(101개 중 28개)만 선택되면 violated_laws는 빈 배열로 둔다 (팀 합의: LLM으로 채우지 않음).
 - 법령 txt는 부칙을 제외하고, 같은 조문이 두 벌이면 `[시행일]` 표기 없는 현행본을 쓴다.
