@@ -65,7 +65,7 @@ def run_all_scans(url=BASE_URL):
     # 1. 정보 누출
     try:
         print("[1/5] 정보 누출 진단 시작")
-        result = check_leak_info(url, client)
+        result = check_leak_info(url)
         all_results.extend(flatten_results(result))
     except Exception as e:
         errors.append({

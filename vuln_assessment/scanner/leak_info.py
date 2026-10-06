@@ -148,7 +148,6 @@ class WebCrawler:
 
             # 로그아웃 링크 제외
             if path in excluded_paths:
-                print(f"[SKIP] logout: {normalized_url}")
                 continue
 
             links.add(normalized_url)
@@ -193,11 +192,6 @@ class WebCrawler:
             }
 
             self.results.append(result)
-
-            print(
-                f"      -> {response.status_code} "
-                f"{response.url}"
-            )
 
             # HTML인 경우에만 링크 탐색
             content_type = response.headers.get(
