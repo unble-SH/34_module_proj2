@@ -219,3 +219,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# macOS
+.DS_Store
+
+# Generated scanner / legal analysis outputs
+vuln_assessment/legal_module/module3/cache/
+vuln_assessment/scanner/output/

@@ -1,4 +1,8 @@
 import json
+import subprocess
+import sys
+from pathlib import Path
+
 import requests
 
 from dotenv import load_dotenv
@@ -129,3 +133,41 @@ if __name__ == "__main__":
 
     print("\n===== 통합 진단 결과 =====")
     print(json.dumps(final_result, ensure_ascii=False, indent=2))
+
+    # 통합 진단 결과를 JSON 파일로 저장
+    output_dir = Path(__file__).resolve().parent / "output"
+    output_dir.mkdir(exist_ok=True)
+
+    output_path = output_dir / "scanner_result.json"
+    output_path.write_text(
+        json.dumps(final_result, ensure_ascii=False, indent=2),
+        encoding="utf-8"
+    )
+
+    print(f"\n스캐너 결과 저장 완료: {output_path}")
+
+        # 저장된 스캐너 결과를 법률 분석 모듈에 전달
+    legal_dir = Path(__file__).resolve().parent.parent / "legal_module"
+    legal_output_path = output_dir / "legal_result.json"
+
+    print("\n===== 법률 / ISMS-P 분석 시작 =====")
+
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "module3",
+            "run",
+            str(output_path),
+            "-o",
+            str(legal_output_path),
+            "--model",
+            "gpt-4.1-mini",
+            "--target-url",
+            final_result["target"],
+        ],
+        cwd=legal_dir,
+        check=True,
+    )
+
+    print(f"\n법률 분석 결과 저장 완료: {legal_output_path}")
