@@ -1,9 +1,0 @@
-# 파이썬 패키지 목록 (pip install -r requirements.txt)
-# PDF 변환에 필요한 시스템 라이브러리 pango는 pip가 아니라 brew로 설치: brew install pango (README 참고)
-jinja2>=3.1
-weasyprint>=62
-openai>=1.0
-chromadb>=0.5
-python-dotenv>=1.0
-openpyxl>=3.1
-anthropic>=0.40  # 선택: Claude로 문장을 쓸 때만 필요

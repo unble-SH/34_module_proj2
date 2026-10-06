@@ -18,7 +18,7 @@ python -m module3 run module3/samples/input_sample.json -o module3/samples/outpu
 ```
 
 API 키는 `.env`의 `OPENAI_API_KEY`로 읽는다. 팀 공용 위치인 `vuln_assessment/.env`(이 폴더의 상위)를 먼저 찾고, 없으면 이 폴더의 `.env`를 쓴다.
-설치: 팀 공용 `vuln_assessment/requirments.txt`에 필요한 패키지(openai, pydantic, python-dotenv)가 모두 들어 있다. 따로 깔 때는 `pip install -r module3/requirements.txt`.
+설치: 프로젝트 루트의 공용 `requirements.txt`에 필요한 패키지가 모두 들어 있다. 이 폴더에서 설치할 때는 `pip install -r ../../../requirements.txt`.
 
 ### 입력 형식 두 가지
 

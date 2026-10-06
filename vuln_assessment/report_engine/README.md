@@ -22,7 +22,7 @@ LLM에는 원화 금액을 아예 넘기지 않는다.
 brew install pango python@3.12                   # pango는 PDF용 시스템 라이브러리라 pip가 아니라 brew로 설치
 /opt/homebrew/bin/python3.12 -m venv .venv       # 맥 기본 python3(3.9)로 만들면 pango를 못 찾음
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r ../../requirements.txt
 echo 'export DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib' >> ~/.zshrc && source ~/.zshrc
 
 # .env (프로젝트 폴더에)
@@ -38,6 +38,8 @@ python engine.py --mock                              # LLM 없이 샘플 문장�
 python engine.py                                     # 실제 LLM 1회 호출
 python engine.py --llm-output out/llm_output.json    # 저장된 LLM 출력 재사용 (템플릿만 고칠 때)
 ```
+
+Windows에서도 WeasyPrint의 Python 패키지 외에 GTK/Pango 런타임이 필요하다. `libgobject-2.0-0` 또는 `libpango-1.0-0` 로드 오류가 발생하면 GTK/Pango를 설치하고 해당 DLL 경로를 `PATH`에 추가한다.
 
 `cannot load library 'libgobject-2.0-0'` 또는 `'libpango-1.0-0'` 오류가 나면 순서대로 확인:
 1. `ls /opt/homebrew/lib | grep -E "libpango-1.0|libgobject-2.0"` 에 아무것도 안 나오면 `brew install pango`
