@@ -4,7 +4,11 @@ import os
 import json
 import secrets
 import socket
+import sqlite3
 import ipaddress
+
+from contextlib import closing
+from pathlib import Path
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -16,8 +20,8 @@ from pydantic import BaseModel, Field
 #-----------------전역 변수 선언-------------------------
 url = "http://localhost:5000/"
 
-TEST_PREFIX = "scantest_"  # 진단용 테스트 계정 접두사 (진단 후 이 접두사 계정/문의글을 삭제할 것)
 TIMEOUT = 5
+ACCOUNTS_FILE = Path(__file__).resolve().parent / "test_accounts.json" # 기존 테스트 계정 목록 (학생 5, 강사 1)
 
 student_paths = [ # 학생 전용 페이지
     "/student",
@@ -103,49 +107,58 @@ def make_finding(category, path, content, result):
         "severity": severity
     }
 
-def register_account(session, base, username, password):
-    """
-    테스트용 학생 계정 생성, 성공 여부 반환
-    """
-    r = request(session, "POST", base, "/register", data={
-        "user_type": "student",
-        "username": username,
-        "password": password,
-        "password_confirm": password,
-        "name": "스캐너",
-        "birth_date": "2000-01-01",
-        "phone": "010-0000-0000",
-        "pw_question": "scan",
-        "pw_answer": "scan"
-    })
-
-    return r.status_code in (301, 302, 303, 307, 308) and urlparse(r.headers.get("Location", "")).path.rstrip("/") == "/login"
-
 def login(session, base, username, password):
     r = request(session, "POST", base, "/login", data={"username": username, "password": password})
 
     return r.status_code in (301, 302, 303, 307, 308) and urlparse(r.headers.get("Location", "")).path in ("", "/")
 
+def load_accounts():
+    """
+    기존 테스트 계정 파일(test_accounts.json) 읽기 (학생 5개 + 강사 1개, 코드에 계정 정보를 넣지 않음)<br>
+    파일 경로는 환경 변수 ACCESS_CONTROL_ACCOUNTS 로 바꿀 수 있고, 기본값은 이 파일과 같은 폴더의 test_accounts.json<br>
+    다른 모듈이 쓰는 student1 을 피하려고 학생 목록의 마지막 두 계정을 A, B 로 사용<br>
+    실패하면 None, 사유, None 반환 / 성공하면 계정 dict, "", DB 경로 반환
+    """
+    path = Path(os.getenv("ACCESS_CONTROL_ACCOUNTS") or ACCOUNTS_FILE)
+    try:
+        config = json.loads(path.read_text(encoding="utf-8"))
+        students = [(s["username"], s["password"]) for s in config["students"]]
+        instructor = config.get("instructor")
+        instructor = (instructor["username"], instructor["password"]) if instructor else None
+    except FileNotFoundError:
+        return None, f"테스트 계정 파일을 찾지 못함: {path} (test_accounts.example.json 을 복사해 만드세요)", None
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        return None, f"테스트 계정 파일 형식 오류({e.__class__.__name__}): {path}", None
+
+    if len(students) < 2 or any(not u or not p for u, p in students):
+        return None, "학생 계정은 아이디/비밀번호가 있는 계정이 2개 이상 필요함", None
+    if students[-2][0] == students[-1][0]:
+        return None, "학생 A, B 는 서로 다른 계정이어야 함", None
+
+    accounts = {"A": students[-2], "B": students[-1], "I": instructor}
+
+    db_path = os.getenv("AUTHZ_DB_PATH") or config.get("db_path")
+    if db_path and not Path(db_path).is_absolute():
+        db_path = str((path.parent / db_path).resolve()) # 상대 경로는 계정 파일 위치 기준
+    return accounts, "", db_path
+
 def prepare_test_data(base):
     """
-    테스트 학생 계정 A, B 생성 및 로그인, A가 표식이 든 문의글 작성<br>
+    기존 학생 계정 A, B(와 강사 계정) 로그인, A가 표식이 든 문의글 작성<br>
     준비에 실패하면 None 과 실패 사유 반환
     """
-    run_id = secrets.token_hex(3)
-    accounts = {}
+    accounts, message, db_path = load_accounts()
+    if accounts is None:
+        return None, message
+
     sessions = {}
+    for tag, account in accounts.items():
+        if account is None:
+            continue
 
-    for tag in ("A", "B"):
-        username = f"{TEST_PREFIX}{run_id}_{tag}"
-        password = "Aa1!" + secrets.token_urlsafe(9)
         session = requests.Session()
-
-        if not register_account(requests.Session(), base, username, password):
-            return None, f"테스트 계정({tag}) 생성 실패"
-        accounts[tag] = username
-
-        if not login(session, base, username, password):
-            return None, f"테스트 계정({tag}) 로그인 실패"
+        if not login(session, base, *account):
+            return None, f"계정({tag}) 로그인 실패"
         sessions[tag] = session
 
     # 학생 A가 문의글 작성
@@ -168,10 +181,40 @@ def prepare_test_data(base):
     return {
         "session_a": sessions["A"],
         "session_b": sessions["B"],
-        "accounts": list(accounts.values()),
+        "session_instructor": sessions.get("I"),
+        "accounts": [accounts[tag][0] for tag in sessions],
         "inquiry_id": inquiry_id,
-        "marker": marker
+        "marker": marker,
+        "db_path": db_path
     }, ""
+
+def cleanup_test_data(inquiry_id, marker, db_path):
+    """
+    점검용으로 작성한 문의글과 그 댓글 삭제 (앱에 삭제 기능이 없어 SQLite 를 직접 조작)<br>
+    DB 경로가 없거나, 문의글 내용이 표식과 다르면 삭제하지 않음
+    """
+    if not db_path:
+        return {"deleted": False, "message": f"DB 경로 미설정(test_accounts.json 의 db_path): 문의글 {inquiry_id} 를 직접 삭제해야 함"}
+
+    if not Path(db_path).is_file():
+        return {"deleted": False, "message": f"DB 파일을 찾지 못함: {db_path}"}
+
+    try:
+        with closing(sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=rw", uri=True, timeout=TIMEOUT)) as conn:
+            row = conn.execute("SELECT content FROM inquiries WHERE inquiry_id = ?", (inquiry_id,)).fetchone()
+
+            if row is None:
+                return {"deleted": False, "message": f"문의글 {inquiry_id} 가 이미 없음"}
+            if row[0] != marker: # 점검용으로 만든 글이 아니면 건드리지 않음
+                return {"deleted": False, "message": f"문의글 {inquiry_id} 의 내용이 표식과 달라 삭제하지 않음"}
+
+            comments = conn.execute("DELETE FROM comments WHERE inquiry_id = ?", (inquiry_id,)).rowcount
+            conn.execute("DELETE FROM inquiries WHERE inquiry_id = ?", (inquiry_id,))
+            conn.commit()
+    except sqlite3.Error as e:
+        return {"deleted": False, "message": f"DB 삭제 실패({e.__class__.__name__}): 문의글 {inquiry_id} 를 직접 삭제해야 함"}
+
+    return {"deleted": True, "message": f"문의글 {inquiry_id} 와 댓글 {comments}개 삭제"}
 
 def ask_gpt(client, finding):
     """
@@ -219,23 +262,32 @@ def check_unauthenticated_access(url):
 
     return make_finding("비인증 접근", "/student, /instructor", content, "vulnerable" if exposed else "pass")
 
-def check_vertical_escalation(url, session):
+def check_vertical_escalation(url, session_student, session_instructor=None):
     """
-    학생 계정으로 강사 전용 페이지 접근이 가능한지 확인
+    학생 계정으로 강사 전용 페이지, 강사 계정으로 학생 전용 페이지 접근이 가능한지 확인
     """
     content = []
     exposed = []
 
     for path in instructor_paths:
-        r = request(session, "GET", url, path)
+        r = request(session_student, "GET", url, path)
         content.append(f"학생 세션 GET {path}: {describe(r)}")
         if is_exposed(r):
-            exposed.append(path)
+            exposed.append(f"학생→{path}")
+
+    if session_instructor is None:
+        content.append("강사 계정이 없어 강사→학생 방향은 점검하지 않음")
+    else:
+        for path in student_paths:
+            r = request(session_instructor, "GET", url, path)
+            content.append(f"강사 세션 GET {path}: {describe(r)}")
+            if is_exposed(r):
+                exposed.append(f"강사→{path}")
 
     if exposed:
-        content.append(f"학생에게 노출된 강사 전용 경로 {len(exposed)}개: {', '.join(exposed)}")
+        content.append(f"권한 밖에서 노출된 전용 경로 {len(exposed)}개: {', '.join(exposed)}")
 
-    return make_finding("수직 권한 상승", "/instructor", content, "vulnerable" if exposed else "pass")
+    return make_finding("수직 권한 상승", "/instructor, /student", content, "vulnerable" if exposed else "pass")
 
 def check_horizontal_read(url, session_a, session_b, inquiry_id, marker):
     """
@@ -295,11 +347,13 @@ def safe_check(category, path, check, *args):
 def check_authz(url, client=None):
     """
     불충분한 권한 검증 점검 (main.py 에서 호출하는 함수)<br>
-    client 가 없으면 규칙 기반 결과만 반환, 있으면 각 결과에 GPT 판단("gpt")을 추가
+    client 가 없으면 규칙 기반 결과만 반환, 있으면 각 결과에 GPT 판단("gpt")을 추가<br>
+    점검이 끝나면 점검용 문의글을 삭제하고 그 결과를 "cleanup" 에 담음
     """
     base = validate_target(url)
     results = [safe_check("비인증 접근", "/student, /instructor", check_unauthenticated_access, base)]
     accounts = []
+    cleanup = {"deleted": False, "message": "삭제할 문의글이 만들어지지 않음"}
 
     try:
         data, message = prepare_test_data(base)
@@ -307,16 +361,20 @@ def check_authz(url, client=None):
         data, message = None, f"테스트 데이터 준비 중 요청 실패({e.__class__.__name__})"
 
     if data is None:
-        results.append(make_finding("수직 권한 상승", "/instructor", [message], "unknown"))
+        results.append(make_finding("수직 권한 상승", "/instructor, /student", [message], "unknown"))
         results.append(make_finding("타인 문의글 열람", "/inquiries/<id>", [message], "unknown"))
         results.append(make_finding("타인 문의글 댓글 작성", "/inquiries/<id>/comment", [message], "unknown"))
     else:
         accounts = data["accounts"]
         args = (base, data["session_a"], data["session_b"], data["inquiry_id"], data["marker"])
         inquiry = f"/inquiries/{data['inquiry_id']}"
-        results.append(safe_check("수직 권한 상승", "/instructor", check_vertical_escalation, base, data["session_b"]))
-        results.append(safe_check("타인 문의글 열람", inquiry, check_horizontal_read, *args))
-        results.append(safe_check("타인 문의글 댓글 작성", inquiry + "/comment", check_horizontal_write, *args))
+
+        try:
+            results.append(safe_check("수직 권한 상승", "/instructor, /student", check_vertical_escalation, base, data["session_b"], data["session_instructor"]))
+            results.append(safe_check("타인 문의글 열람", inquiry, check_horizontal_read, *args))
+            results.append(safe_check("타인 문의글 댓글 작성", inquiry + "/comment", check_horizontal_write, *args))
+        finally:
+            cleanup = cleanup_test_data(data["inquiry_id"], data["marker"], data["db_path"]) # 점검 중 오류가 나도 문의글은 삭제
 
     for r in results:
         r["reason"] = " / ".join(r["content"])  # 규칙 기반 판단 근거
@@ -336,11 +394,14 @@ def check_authz(url, client=None):
     return {
         "target": base,
         "results": results,
-        "test_accounts": accounts
+        "used_accounts": accounts,
+        "cleanup": cleanup
     }
 
 
 if __name__=="__main__":
+    # 실행: scanner 폴더에서 `python access_control.py`
+    # 사전 조건: 웹 서비스가 http://localhost:5000/ 에서 실행 중, test_accounts.json 준비, .env 에 OPENAI_API_KEY
     load_dotenv()
     client = OpenAI() # 환경 변수 OPENAI_API_KEY 자동 인식
     url = "http://localhost:5000/"

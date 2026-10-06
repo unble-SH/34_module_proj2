@@ -222,10 +222,7 @@ __marimo__/
 
 # macOS
 .DS_Store
-<<<<<<< HEAD
 
 # Generated scanner / legal analysis outputs
 vuln_assessment/legal_module/module3/cache/
 vuln_assessment/scanner/output/
-=======
->>>>>>> origin/main

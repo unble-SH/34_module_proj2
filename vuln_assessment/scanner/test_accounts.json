@@ -1,0 +1,11 @@
+{
+  "db_path": "../web_service/instance/education.db",
+  "students": [
+    {"username": "student1", "password": "student123"},
+    {"username": "student2", "password": "student123"},
+    {"username": "student3", "password": "student123"},
+    {"username": "student4", "password": "student123"},
+    {"username": "student5", "password": "student123"}
+  ],
+  "instructor": {"username": "instructor", "password": "instructor123"}
+}
