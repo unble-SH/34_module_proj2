@@ -2,6 +2,7 @@ import requests
 
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+import uuid
 
 #-------------------------------------------------------
 # 전역 변수 선언
@@ -52,7 +53,7 @@ def generate_value(name, input_type="text"):
         or name == "id"
         or "login" in name
     ):
-        return "testuser"
+        return "testuser" + str(uuid.uuid4())[:4] # 반복 테스트 시 충돌을 막기 위해 랜덤값 추가
 
     if "phone" in name or "tel" in name or "mobile" in name:
         return "010-1234-5678"
