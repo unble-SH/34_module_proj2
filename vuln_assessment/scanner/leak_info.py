@@ -47,7 +47,7 @@ comment_patterns = { # 주석 내 정보확인 패턴
 
 info_patterns = {
         "account_number": r"\b\d{3,6}[- ]?\d{2,6}[- ]?\d{2,8}\b", # 계좌 번호 패턴,
-     
+
         "card_number": r"\b(?:\d{4}[- ]?){3}\d{4}\b", # 카드 번호 패턴,
      
         "resident_registration_number": r"\b\d{6}-\d{7}\b", # 주민등록번호 패턴

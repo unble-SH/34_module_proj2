@@ -1,0 +1,44 @@
+{
+  "scan_id": "SCAN-LIVE-001",
+  "target_url": "http://localhost:5000/",
+  "results": [
+    {
+      "path": "http://localhost:5000/login",
+      "content": [
+        "HTML 주석 내 기본 계정 정보로 추정되는 값: student1/student123"
+      ],
+      "category": "주석 내 정보 누출",
+      "result": "vulnerable",
+      "severity": "high",
+      "reason": "주석에 'default id'와 함께 아이디/비밀번호 형식의 문자열(student1/student123)이 명시되어 있어 실제 로그인 계정 정보 또는 기본 계정 정보가 노출된 것으로 판단됩니다. 계정 정보는 인증 우회나 무단 접근에 직접 악용될 수 있으므로 위험도가 높습니다."
+    },
+    {
+      "path": "http://localhost:5000/student/mypage",
+      "content": [
+        "학생 ID: STU-000001",
+        "아이디: student1",
+        "이름: 홍길동",
+        "생년월일: 2003-03-01",
+        "전화번호: 010-2000-0001",
+        "회원 유형: 학생"
+      ],
+      "category": "중요 정보 마스킹 미흡",
+      "result": "vulnerable",
+      "severity": "medium",
+      "reason": "로그인 후 본인 마이페이지에서 확인되는 정보이므로 접근 맥락상 위험도는 제한적이나, 이름, 생년월일, 전화번호 등 개인정보가 마스킹 없이 평문으로 표시되고 있습니다. 비밀번호, 금융정보, 주민등록번호와 같은 중요 정보 노출은 확인되지 않았지만, 생년월일과 연락처는 개인정보로서 불필요한 전체 노출 시 개인정보 유출 위험이 있으므로 취약으로 판단합니다."
+    },
+    {
+      "path": "http://localhost:5000/student/profile",
+      "content": [
+        "아이디: student1",
+        "이름: 홍길동",
+        "생년월일: 2003-03-01",
+        "전화번호: 010-2000-0001"
+      ],
+      "category": "중요 정보 마스킹 미흡",
+      "result": "vulnerable",
+      "severity": "medium",
+      "reason": "로그인한 본인 프로필 화면이지만 이름, 생년월일, 전화번호 등 개인정보가 마스킹 없이 전체 노출되어 있습니다. 비밀번호, 금융정보, 주민등록번호와 같은 중요 정보는 확인되지 않아 high로 보기는 어렵지만, 개인정보 비마스킹 노출에 해당하므로 medium으로 판단합니다."
+    }
+  ]
+}
