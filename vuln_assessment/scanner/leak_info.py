@@ -5,10 +5,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 from bs4 import BeautifulSoup, Comment
-from urllib.parse import urljoin
-
-from typing import Literal, List
-from pydantic import BaseModel, Field
+from urllib.parse import urljoin, urlparse, urldefrag
 
 #-------------------------------------------------------
 # 전역 변수 선언
@@ -36,24 +33,29 @@ keywords = [ # 로그인 후 개인정보 접근 페이지 후보
     "계정"
 ]
 
-comment_patterns = { # 주석 내 정보 확인 패턴
+comment_patterns = { # 주석 내 정보확인 패턴
         "account_info": [
-            r"\b(?:id|userid|user_id|username|password|passwd|pwd|account)\b",
-            r"\b(?:아이디|사용자명|사용자\s*ID|계정|비밀번호|패스워드)\b"
+            r"\b(?:id|userid|user_id|username|password|passwd|pwd|account)\s*[:=]\s*[^\s<]+",
+            r"\b(?:아이디|사용자명|사용자\s*ID|계정|비밀번호|패스워드)\s*[:=]\s*[^\s<]+"
         ],
 
         "debug_info": [
-            r"\b(?:debug|debugging|trace|stack\s*trace|exception|error|log)\b",
-            r"\b(?:디버그|디버깅|스택\s*트레이스|예외|에러|로그)\b"
-        ],
-    }
+            r"\b(?:debug|debugging|trace|stack|stack\s*trace|exception|error|log)\b",
+            r"\b(?:디버그|디버깅|스택|스택\s*트레이스|예외|에러|로그)\b"
+        ]
+}
 
 info_patterns = {
         "account_number": r"\b\d{3,6}[- ]?\d{2,6}[- ]?\d{2,8}\b", # 계좌 번호 패턴,
      
         "card_number": r"\b(?:\d{4}[- ]?){3}\d{4}\b", # 카드 번호 패턴,
      
-        "resident_registration_number": r"\b\d{6}-\d{7}\b" # 주민등록번호 패턴
+        "resident_registration_number": r"\b\d{6}-\d{7}\b", # 주민등록번호 패턴
+
+        "pwd_placeholder_pattern" : # 비밀번호 란에 표시되는 것을 허용할 패턴
+            r"^(?:입력|입력하세요|입력해 주세요|변경|변경할 비밀번호|새 비밀번호|새로운 비밀번호|현재 비밀번호|확인|비밀번호 확인)$",
+
+        "pwd_masking_pattern" : r"^[*•●xX#]+$" # 비밀번호 마스킹 패턴
 }
 
 reason_format = { # 판단 근거 포매팅
@@ -72,20 +74,162 @@ category = {
 }
 
 #-------------------------------------------------------
-# openai 출력 구조화
+# 모든 페이지의 주석을 확인하기 위해 링크 탐색
 #-------------------------------------------------------
-class ResponseFormat(BaseModel):
-    path: str = Field(description="정보가 확인된 url 경로")
-    content : List[str] = Field(description="확인된 정보. 별도의 설명 없이 파악된 정보만 넣을 것")
-    category: Literal["주석 내 정보 누출", "중요 정보 마스킹 미흡", "에러페이지 정보 노출"] = Field(description="발견된 취약점 유형")
-    result: Literal["vulnerable", "pass", "unknown"] = Field(description="노출된 정보를 취약, 양호, 판단 불가로 구분")
-    severity: Literal["high", "medium", "low"] = Field(description="""
-                                                노출된 정보의 위험성. 
-                                                취약하지 않은 정보거나 제대로 마스킹처리 되어있는 경우, result가 pass인 경우 low,
-                                                중요 정보가 아닌 개인정보가 노출되거나 다른 취약점과 연계되어 위험할 수 있는 정보이거나 result가 unknown이면 medium,
-                                                중요 정보가 마스킹 없이 노출되거나 즉시 취약점이 될 수 있는 정보가 노출되면 high
-                                                """)
-    reason: str = Field(description="판단 근거")
+class WebCrawler:
+    def __init__(self, base_url, session=None):
+        self.base_url = base_url.rstrip("/")
+        self.session = session or requests.Session()
+
+        parsed = urlparse(self.base_url)
+        self.allowed_netloc = parsed.netloc
+
+        self.visited = set()
+        self.results = []
+
+    def normalize_url(self, url):
+        """
+        URL을 정규화한다.
+        """
+        url = urldefrag(url)[0]  # #fragment 제거
+
+        parsed = urlparse(url)
+
+        # http / https 이외에는 제외
+        if parsed.scheme not in ("http", "https"):
+            return None
+
+        # 외부 도메인 제외
+        if parsed.netloc != self.allowed_netloc:
+            return None
+
+        # 기본적으로 URL의 끝 '/' 차이 제거
+        normalized = parsed._replace(
+            fragment=""
+        ).geturl().rstrip("/")
+
+        return normalized
+
+    def extract_links(self, html, current_url):
+        """
+        현재 HTML에서 같은 사이트의 링크를 추출한다.
+        로그아웃 링크는 제외한다.
+        """
+        soup = BeautifulSoup(html, "html.parser")
+
+        links = set()
+
+        # 제외할 경로
+        excluded_paths = {
+            "/logout",
+            "/signout",
+        }
+
+        for a in soup.find_all("a", href=True):
+            href = a.get("href")
+
+            if not href:
+                continue
+
+            # javascript:, mailto:, tel:, data: 등 제외
+            if href.startswith((
+                "javascript:",
+                "mailto:",
+                "tel:",
+                "data:"
+            )):
+                continue
+
+            absolute_url = urljoin(current_url, href)
+            normalized_url = self.normalize_url(absolute_url)
+
+            if not normalized_url:
+                continue
+
+            # URL에서 path만 추출
+            path = urlparse(normalized_url).path
+
+            # 로그아웃 링크 제외
+            if path in excluded_paths:
+                print(f"[SKIP] logout: {normalized_url}")
+                continue
+
+            links.add(normalized_url)
+
+        return links
+
+    def crawl(self, start_url=None):
+        """
+        start_url부터 재귀적으로 모든 페이지를 탐색한다.
+        """
+        if start_url is None:
+            start_url = self.base_url
+
+        start_url = self.normalize_url(start_url)
+
+        if not start_url:
+            return
+
+        self._crawl_page(start_url)
+
+    def _crawl_page(self, url):
+        if url in self.visited:
+            return
+
+        self.visited.add(url)
+
+        try:
+            response = self.session.get(
+                url,
+                timeout=10,
+                allow_redirects=True
+            )
+
+            final_url = self.normalize_url(response.url)
+
+            result = {
+                "url": url,
+                "final_url": final_url,
+                "status_code": response.status_code,
+                "content_type": response.headers.get("Content-Type", ""),
+                "links": []
+            }
+
+            self.results.append(result)
+
+            print(
+                f"      -> {response.status_code} "
+                f"{response.url}"
+            )
+
+            # HTML인 경우에만 링크 탐색
+            content_type = response.headers.get(
+                "Content-Type",
+                ""
+            ).lower()
+
+            if "text/html" not in content_type:
+                return
+
+            links = self.extract_links(
+                response.text,
+                response.url
+            )
+
+            result["links"] = sorted(links)
+
+            # 발견한 링크를 재귀적으로 방문
+            for link in sorted(links):
+                self._crawl_page(link)
+
+        except requests.RequestException as e:
+            print(f"      [ERROR] {e}")
+
+    def get_results(self):
+        return self.results
+    
+    def get_urls(self):
+        return [result["url"] for result in self.results]
 
 #-------------------------------------------------------
 # 함수 정의
@@ -99,63 +243,63 @@ def make_result(path, content, category, result, severity, reason):
         "severity" : severity,
         "reason" : reason
     }
-def check_comment(session, url, client):
+
+def check_comment(session, base_url):
     """
-    제공된 url의 html 파일 내의 주석 검사<br>
+    제공된 url 및 연결된 링크의 html 파일 내의 주석 검사<br>
     주석에 계정 정보, 디버깅 정보 등이 존재하는지 확인
     """
-    r = session.get(url)
-
-    soup = BeautifulSoup(r.text, 'html.parser')
-    comments = soup.find_all(string = lambda text: isinstance(text, Comment)) # 페이지 내 주석 확인
+    crawler = WebCrawler(base_url, session=session)
+    crawler.crawl()
+    urls = crawler.get_urls() # base_url 및 href로 연결되는 url
 
     results = []
 
-    for comment in comments:
-        text = str(comment).strip()
+    for url in urls:
+        r = session.get(url)
 
-        if not text:
-            continue
+        soup = BeautifulSoup(r.text, 'html.parser')
+        comments = soup.find_all(string = lambda text: isinstance(text, Comment)) # 페이지 내 주석 확인
 
-        matched_types = []
+        has_vuln = False
+        for comment in comments:
+            text = str(comment).strip()
 
-        for info_type, regex_list in comment_patterns.items():
-            for pattern in regex_list:
-                if re.search(pattern, text, re.IGNORECASE):
-                    matched_types.append(info_type)
-                    break
+            if not text:
+                continue
 
-        if matched_types:
-            results.append({
-                "comment": text,
-                "types": matched_types
-            })
+            matched_types = []
 
-    if not results:
-        return None
+            for info_type, regex_list in comment_patterns.items():
+                for pattern in regex_list:
+                    if re.search(pattern, text, re.IGNORECASE):
+                        matched_types.append(info_type)
+                        break
+            if matched_types:
+                has_vuln = True
+                results.append(
+                    make_result(
+                        path=url, 
+                        content={
+                            "comment": text,
+                            "types": matched_types}, 
+                        category=category["comment"], 
+                        result="vulnerable", 
+                        severity="high", 
+                        reason=reason_format["vuln_comment"]))
+        if not has_vuln:
+            results.append(
+                make_result(
+                    path=url, 
+                    content={}, 
+                    category=category["comment"], 
+                    result="pass", 
+                    severity="low", 
+                    reason=reason_format["pass_comment"]))
+
+    return results
+
     
-    # response = client.responses.parse(
-    #     model="gpt-5.5",
-    #     input=[
-    #         {
-    #             "role" : "system",
-    #             "content" : f"""
-    #             다음은 {url}경로의 html 주석 내 계정 정보, 디버그 정보로 추정되는 내용임
-    #             "comment"는 주석의 내용, "types"는 추측되는 해당 내용의 유형
-    #             실제로 중요하거나 민감한 정보가 주석에 포함되었는지 판단할 것
-    #             확실한 근거가 없다면 unknown
-    #             """ 
-    #         },
-    #         {
-    #             "role" : "user",
-    #             "content" : str(results)
-    #         }
-    #     ],
-    #     text_format=ResponseFormat
-    # )
-
-    return make_result(url, results, category["comment"], "vulnerable", "high", reason_format["vuln_comment"])
-
 def find_mypage(session, url):
     """
     로그인된 상태의 메인 페이지에서 개인정보를 확인할 수 있는 링크 탐색<br>
@@ -240,7 +384,7 @@ def find_personal_info(session, url):
 
     return result
 
-def check_personal_info(session, url, client):
+def check_personal_info(session, url):
     """
     개인정보 및 중요정보가 노출되는지, 노출된 정보가 취약한지 판단
     """
@@ -248,31 +392,6 @@ def check_personal_info(session, url, client):
 
     if not p_info:
         return None
-
-    # response = client.responses.parse(
-    #     model="gpt-5.5",
-    #     input=[
-    #         {
-    #             "role" : "system",
-    #             "content" : f"""
-    #             다음은 {url}경로에서 표시되는 정보들로, 로그인한 상태에서 접근 가능한 본인의 개인정보임
-    #             딕셔너리 형태이며 key는 분류, value는 값
-    #             1. 개인정보 및 중요한 정보가 노출되는지, 취약한지 확인할 것
-    #             2. 개인정보는 이름, 생년월일, 연락처 등
-    #             3. 중요 정보는 비밀번호, 금융정보, 주민등록번호 등
-    #             4. 중요 정보가 있더라도 적절하게 마스킹이 되어있다면 양호한 것으로 판단
-    #             5. 중요 정보가 마스킹 없이 노출된다면 고위험 취약점으로 판단
-    #             6. 중요 정보 없이 개인정보만 노출되어있으면 양호한 것으로 판단
-    #             7. 확실한 근거가 없다면 unknown
-    #             """ 
-    #         },
-    #         {
-    #             "role" : "user",
-    #             "content" : str(p_info)
-    #         }
-    #     ],
-    #     text_format=ResponseFormat
-    # )
 
     result = []
     for key in p_info.keys():
@@ -284,17 +403,24 @@ def check_personal_info(session, url, client):
             if re.match(info_patterns["card_number"], p_info[key]):
                             result.append(make_result(url, {key:p_info[key]}, category["masking"], "vulnerable", "high", reason_format["vuln_info"]))
             continue
+        if re.match(r'^(?:비밀번호|패스\s*워드|pass\s*word|passwd|pwd)$', key, re.IGNORECASE):
+            if re.match(info_patterns["pwd_placeholder_pattern"], p_info[key]) or re.match(info_patterns["pwd_masking_pattern"], p_info[key]):
+                continue # 비밀번호 placeholder이거나 마스킹되어있다면 양호한 것으로 판단
+            result.append(make_result(url, {key:p_info[key]}, category["masking"], "vulnerable", "high", reason_format["vuln_info"]))
         if re.match(r"\b계좌\s*번호\b", key):
             if re.match(info_patterns["account_number"], p_info[key]):
                             result.append(make_result(url, {key:p_info[key]}, category["masking"], "vulnerable", "medium", reason_format["vuln_info"]))
             continue
 
+    if not result: # 취약한 값이 발견되지 않았으면 양호한 것으로 판단
+         result.append(make_result(url, {}, category["masking"], "pass", "low", reason_format["pass_info"]))
+         
     return result
 
 #-------------------------------------------------------
 # 메인 모듈에서 호출할 함수
 #-------------------------------------------------------
-def check_leak_info(url, client):
+def check_leak_info(url):
     """
     주어진 url에 대해 정보 누출 취약점이 존재하는지 확인
     """
@@ -307,9 +433,8 @@ def check_leak_info(url, client):
 
     # 로그인 화면 검사 및 로그인
     login_url = urljoin(url, "/login")
-    result = check_comment(session, login_url, client)
-    if result: # 검사 결과가 존재하면 append
-        results.append(result)# json 형식으로 변환
+    if result := check_comment(session, login_url) : # 검사 결과가 존재하면
+        results.extend(result)
 
     r = session.post(login_url, data=data)
     if r.history[0].status_code // 100 != 3: # redirect 되지 않았다면 로그인 실패로 간주
@@ -318,14 +443,12 @@ def check_leak_info(url, client):
 
     info_candidate = find_mypage(session, r.url) # 개인정보 열람이 가능할 것으로 추정되는 경로들
 
-    for path in info_candidate:
-        result = check_comment(session, path, client) # 각 경로의 주석 확인
-        if result:
-            results.append(result) 
+    if result := check_comment(session, r.url): # 로그인 이후 메인 페이지 기준 주석 확인
+        results.extend(result) 
 
-        result = check_personal_info(session, path, client) # 각 경로의 개인정보 노출 확인
-        if result:
-            results.append(result)
+    for path in info_candidate:
+        if result := check_personal_info(session, path): # 각 경로의 개인정보 노출 확인
+            results.extend(result)
 
     return results
 
@@ -334,7 +457,7 @@ def check_leak_info(url, client):
 #-------------------------------------------------------
 if __name__=="__main__":
     load_dotenv()
-    client = OpenAI() # 환경 변수 OPENAI_API_KEY 자동 인식
+    #client = OpenAI() # 환경 변수 OPENAI_API_KEY 자동 인식
     url = "http://localhost:5000/"
 
-    print(check_leak_info(url, client))
+    print(check_leak_info(url))
