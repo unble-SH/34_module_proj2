@@ -8,7 +8,9 @@ import uuid
 # 전역 변수 선언
 #-------------------------------------------------------
 vuln_pwd_pattern = {
-    "char" : ["student", "qwer", "asdf", "abcd", "admin", "administator", "rhksflwk", "instructor", "teacher", "mentor", "tutor", ""],
+    "char" : ["student", "qwer", "asdf", "abcd", "admin", 
+              "administator", "rhksflwk", "instructor", 
+              "teacher", "mentor", "tutor", ""],
     "num" : ["1", "2", "3", "4", "123", "321", "1111", "2222", ""]
 }
 
@@ -22,7 +24,7 @@ reason_format = {
 #-------------------------------------------------------
 # 함수 정의
 #-------------------------------------------------------
-def check_vuln_login(login_url, id):
+def check_vuln_login(login_url, id = "student1"):
     """
     관리자 및 사용자 계정의 비밀번호가 유추하기 쉬운 값으로 설정되어 있는지 확인<br>
     몇 가지 조합의 간단한 비밀번호로 로그인을 시도하여 로그인에 성공하면 True, 실패하면 False를 반환
@@ -170,10 +172,11 @@ def check_vuln_register(signup_url):
     낮은 복잡성의 비밀번호로 회원가입 성공 시 True, 실패 이후 비밀번호를 복잡하게 바꿨을 때 회원가입에 성공하면 False
     """
     data = fill_signup_form(signup_url)
+    username = data["username"]
 
     r = requests.post(signup_url, data=data)
     if r.history[0].status_code // 100 == 3: # redirect 되면 회원가입 성공으로 판단
-        return True
+        return (True, [{"username" : username, "password":data["password"]}])
 
     for key in data.keys():
         if "password" in key:
@@ -181,9 +184,9 @@ def check_vuln_register(signup_url):
 
     r = requests.post(signup_url, data=data)
     if r.history[0].status_code // 100 == 3: # redirect 되면 회원가입 성공으로 판단
-            return False # 비밀번호만 바꿨을 때 로그인에 성공하면 높은 복잡도의 비밀번호 정책이 설정된 것으로 판단
+            return (True, [{"username" : username, "password":data["password"]}]) # 비밀번호만 바꿨을 때 로그인에 성공하면 높은 복잡도의 비밀번호 정책이 설정된 것으로 판단
 
-    return None # 두 번 모두 회원가입 실패 시 별도의 문제
+    return (None, [{"username" : username, "password":data["password"]}]) # 두 번 모두 회원가입 실패 시 별도의 문제
 
 def make_format(path, content, category, result, severity, reason):
     return {
@@ -218,18 +221,16 @@ def check_vuln_pwd(url):
     #------------------
     register_url = urljoin(url, "/register")
 
-    is_vuln = check_vuln_register(register_url)
+    is_vuln, account = check_vuln_register(register_url)
 
     if is_vuln == None:
         print("비밀번호 외의 문제로 회원가입 불가")
         return result
 
     if is_vuln:
-        data = "id:testuser password:1234"
-        result.append(make_format(register_url, data, "낮은 복잡도의 비밀번호 정책", "vulnerable", "high", reason_format["vuln_pwd_register"]))
+        result.append(make_format(register_url, account, "낮은 복잡도의 비밀번호 정책", "vulnerable", "high", reason_format["vuln_pwd_register"]))
     else:
-        data = "id:testuser password:s@f3P4ssW0rd"
-        result.append(make_format(register_url, data, "낮은 복잡도의 비밀번호 정책", "pass", "low", reason_format["pass_pwd_register"]))
+        result.append(make_format(register_url, account, "낮은 복잡도의 비밀번호 정책", "pass", "low", reason_format["pass_pwd_register"]))
 
     return result
 
@@ -238,6 +239,7 @@ def check_vuln_pwd(url):
 # 테스트용
 #-------------------------------------------------------
 if __name__=="__main__":
+    from pprint import pprint
     url = "http://localhost:5000/"
 
-    print(check_vuln_pwd(url))
+    pprint(check_vuln_pwd(url), sort_dicts=False, width=120)

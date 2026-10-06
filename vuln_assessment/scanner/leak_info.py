@@ -1,9 +1,6 @@
 import requests
 import re
 
-from openai import OpenAI
-from dotenv import load_dotenv
-
 from bs4 import BeautifulSoup, Comment
 from urllib.parse import urljoin, urlparse, urldefrag
 
@@ -381,7 +378,7 @@ def find_personal_info(session, url):
 
             if value:
                 result[key] = value
-
+    
     return result
 
 def check_personal_info(session, url):
@@ -401,7 +398,7 @@ def check_personal_info(session, url):
             continue
         if re.match(r"\b카드\s*번호\b", key):
             if re.match(info_patterns["card_number"], p_info[key]):
-                            result.append(make_result(url, {key:p_info[key]}, category["masking"], "vulnerable", "high", reason_format["vuln_info"]))
+                result.append(make_result(url, {key:p_info[key]}, category["masking"], "vulnerable", "high", reason_format["vuln_info"]))
             continue
         if re.match(r'^(?:비밀번호|패스\s*워드|pass\s*word|passwd|pwd)$', key, re.IGNORECASE):
             if re.match(info_patterns["pwd_placeholder_pattern"], p_info[key]) or re.match(info_patterns["pwd_masking_pattern"], p_info[key]):
@@ -409,7 +406,7 @@ def check_personal_info(session, url):
             result.append(make_result(url, {key:p_info[key]}, category["masking"], "vulnerable", "high", reason_format["vuln_info"]))
         if re.match(r"\b계좌\s*번호\b", key):
             if re.match(info_patterns["account_number"], p_info[key]):
-                            result.append(make_result(url, {key:p_info[key]}, category["masking"], "vulnerable", "medium", reason_format["vuln_info"]))
+                result.append(make_result(url, {key:p_info[key]}, category["masking"], "vulnerable", "medium", reason_format["vuln_info"]))
             continue
 
     if not result: # 취약한 값이 발견되지 않았으면 양호한 것으로 판단
@@ -420,7 +417,7 @@ def check_personal_info(session, url):
 #-------------------------------------------------------
 # 메인 모듈에서 호출할 함수
 #-------------------------------------------------------
-def check_leak_info(url):
+def check_leak_info(url="http://localhost:5000"):
     """
     주어진 url에 대해 정보 누출 취약점이 존재하는지 확인
     """
@@ -456,8 +453,7 @@ def check_leak_info(url):
 # 테스트용
 #-------------------------------------------------------
 if __name__=="__main__":
-    load_dotenv()
-    #client = OpenAI() # 환경 변수 OPENAI_API_KEY 자동 인식
+    from pprint import pprint
     url = "http://localhost:5000/"
 
-    print(check_leak_info(url))
+    pprint(check_leak_info(url), sort_dicts=False, width=120)
