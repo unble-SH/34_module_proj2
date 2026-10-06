@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.0",
+  "scan_id": "SCAN-2026-001",
+  "scan_date": "2026-10-02",
+  "target_system": "모의 교육 플랫폼",
+  "mapping": { "method": "llm", "model": "...", "prompt_version": "v1" },
+  "references": [
+    {
+      "ref_id": "PIPA-21445",
+      "title": "개인정보 보호법",
+      "type": "법률",
+      "version": "법률 제21445호",
+      "effective_date": "2026-09-11",
+      "source_file": "개인정보 보호법(법률)(제21445호)(20260911).txt"
+    },
+    {
+      "ref_id": "ISMSP-2023.11",
+      "title": "ISMS-P 인증기준 안내서",
+      "type": "인증기준",
+      "version": "2023.11",
+      "effective_date": null,
+      "source_file": "ISMS-P 인증기준 안내서(2023.11).txt"
+    }
+  ],
+  "findings": [
+    {
+      "finding_id": "SCAN-2026-001-U-01-DB01",
+      "item_id": "U-01",
+      "title": "root 계정 원격접속 제한",
+      "status": "취약",
+      "severity": "상",
+      "asset": { "id": "DB01", "name": "회원 DB 서버", "handles_personal_data": true },
+      "evidence": {
+        "summary": "SSH 설정에서 root 계정의 원격 직접 로그인이 허용되어 있음",
+        "detail": "$ grep -i PermitRootLogin /etc/ssh/sshd_config\nPermitRootLogin yes"
+      },
+      "violated_laws": [
+        {
+          "law_code": "PIPA-29",
+          "ref_id": "PIPA-21445",
+          "article": "제29조",
+          "paragraph": null,
+          "article_title": "안전조치의무",
+          "text": "개인정보처리자는 개인정보가 분실·도난·유출·위조·변조 또는 훼손되지 아니하도록 내부 관리계획 수립, 접속기록 보관 등 대통령령으로 정하는 바에 따라 안전성 확보에 필요한 기술적·관리적 및 물리적 조치를 하여야 한다.",
+          "in_force": true,
+          "mapped_by": "llm",
+          "reviewed": true,
+          "reason": "개인정보를 저장한 DB 서버의 관리자 계정 접근통제가 미흡하여 안전성 확보조치가 이행되지 않음"
+        }
+      ],
+      "isms_p": [
+        {
+          "criterion_id": "2.6.6",
+          "ref_id": "ISMSP-2023.11",
+          "title": "원격접근 통제",
+          "text": "...",
+          "mapped_by": "llm",
+          "reviewed": false,
+          "reason": "관리자 계정의 원격 직접 접속을 허용하여 원격접근 통제 기준에 미달"
+        }
+      ]
+    },
+    {
+      "finding_id": "SCAN-2026-001-U-02-DB01",
+      "item_id": "U-02",
+      "title": "패스워드 복잡성 설정",
+      "status": "양호",
+      "severity": "상",
+      "asset": { "id": "DB01", "name": "회원 DB 서버", "handles_personal_data": true },
+      "violated_laws": [],
+      "isms_p": []
+    },
+    {
+      "finding_id": "SCAN-2026-001-PR-WEB01",
+      "item_id": "PR",
+      "title": "취약한 비밀번호 복구 절차",
+      "status": "취약",
+      "severity": "상",
+      "asset": { "id": "WEB01", "name": "교육 플랫폼 웹 서비스", "handles_personal_data": true },
+      "evidence": {
+        "summary": "비밀번호 재설정 시 아이디와 이름만 확인하고 본인 인증 없이 새 비밀번호 입력 화면으로 이동함",
+        "detail": "POST /account/reset HTTP/1.1\nuser_id=student01&name=홍길동\n\nHTTP/1.1 302 Found\nLocation: /account/reset/new?uid=student01"
+      },
+      "violated_laws": [
+        {
+          "law_code": "PIPA-29",
+          "ref_id": "PIPA-21445",
+          "article": "제29조",
+          "paragraph": null,
+          "article_title": "안전조치의무",
+          "text": "개인정보처리자는 개인정보가 분실·도난·유출·위조·변조 또는 훼손되지 아니하도록 내부 관리계획 수립, 접속기록 보관 등 대통령령으로 정하는 바에 따라 안전성 확보에 필요한 기술적·관리적 및 물리적 조치를 하여야 한다.",
+          "in_force": true,
+          "mapped_by": "llm",
+          "reviewed": false,
+          "reason": "본인 확인 없는 비밀번호 재설정으로 제3자가 회원 계정과 개인정보에 접근 가능"
+        }
+      ],
+      "isms_p": [
+        {
+          "criterion_id": "2.5.4",
+          "ref_id": "ISMSP-2023.11",
+          "title": "비밀번호 관리",
+          "text": "...",
+          "mapped_by": "llm",
+          "reviewed": false,
+          "reason": "비밀번호 변경 절차에 본인 확인 통제가 없음"
+        }
+      ]
+    },
+    {
+      "finding_id": "SCAN-2026-001-BF-WEB01",
+      "item_id": "BF",
+      "title": "약한 비밀번호 정책",
+      "status": "취약",
+      "severity": "중",
+      "asset": { "id": "WEB01", "name": "교육 플랫폼 웹 서비스", "handles_personal_data": true },
+      "evidence": {
+        "summary": "회원가입과 비밀번호 변경 시 숫자 4자리 비밀번호가 허용됨",
+        "detail": "POST /account/join HTTP/1.1\nuser_id=test99&password=1234\n\nHTTP/1.1 200 OK\n{\"result\":\"success\"}"
+      },
+      "violated_laws": [
+        {
+          "law_code": "PIPA-29",
+          "ref_id": "PIPA-21445",
+          "article": "제29조",
+          "paragraph": null,
+          "article_title": "안전조치의무",
+          "text": "개인정보처리자는 개인정보가 분실·도난·유출·위조·변조 또는 훼손되지 아니하도록 내부 관리계획 수립, 접속기록 보관 등 대통령령으로 정하는 바에 따라 안전성 확보에 필요한 기술적·관리적 및 물리적 조치를 하여야 한다.",
+          "in_force": true,
+          "mapped_by": "llm",
+          "reviewed": false,
+          "reason": "추측 가능한 비밀번호를 허용하여 계정 탈취 위험 증가"
+        }
+      ],
+      "isms_p": [
+        {
+          "criterion_id": "2.5.4",
+          "ref_id": "ISMSP-2023.11",
+          "title": "비밀번호 관리",
+          "text": "...",
+          "mapped_by": "llm",
+          "reviewed": false,
+          "reason": "비밀번호 작성 규칙이 수립·적용되지 않음"
+        }
+      ]
+    },
+    {
+      "finding_id": "SCAN-2026-001-IL-WEB01",
+      "item_id": "IL",
+      "title": "정보 누출",
+      "status": "취약",
+      "severity": "중",
+      "asset": { "id": "WEB01", "name": "교육 플랫폼 웹 서비스", "handles_personal_data": true },
+      "evidence": {
+        "summary": "존재하지 않는 강의 번호 요청 시 오류 화면에 SQL 쿼리와 서버 내부 경로가 노출됨",
+        "detail": "GET /course/view?id=99999' HTTP/1.1\n\nHTTP/1.1 500 Internal Server Error\nSQLSyntaxErrorException: ... near ''99999''' at line 1\n  at /srv/app/course/CourseDao.java:42"
+      },
+      "violated_laws": [],
+      "isms_p": [
+        {
+          "criterion_id": "2.10.3",
+          "ref_id": "ISMSP-2023.11",
+          "title": "공개서버 보안",
+          "text": "...",
+          "mapped_by": "llm",
+          "reviewed": false,
+          "reason": "외부에 공개된 웹 서버가 내부 구조 정보를 노출"
+        }
+      ]
+    }
+  ]
+}
