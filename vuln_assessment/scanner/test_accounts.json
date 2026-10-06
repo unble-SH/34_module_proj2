@@ -1,5 +1,5 @@
 {
-  "db_path": "../web_service/instance/education.db",
+  "db_path": "../../web_service/instance/education.db",
   "students": [
     {"username": "student1", "password": "student123"},
     {"username": "student2", "password": "student123"},
