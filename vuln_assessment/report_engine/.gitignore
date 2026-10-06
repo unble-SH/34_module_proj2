@@ -1,0 +1,16 @@
+# 비밀 정보: 절대 올리지 않기
+.env
+
+# 가상환경·캐시
+.venv/
+__pycache__/
+*.pyc
+
+# 실행하면 다시 생기는 것
+out/
+data/chroma_db/
+data/cases.json
+
+# 맥·엑셀 임시 파일
+.DS_Store
+~$*.xlsx

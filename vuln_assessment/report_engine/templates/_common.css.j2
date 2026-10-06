@@ -1,0 +1,76 @@
+/* 시스템에 Pretendard가 깔려 있어도 섞이지 않게 이름을 따로 붙인다.
+   TTF 버전을 쓰는 이유: OTF(CFF) 임베드는 일부 PDF 뷰어에서 숫자·기호가 사라지는 문제가 있음 */
+@font-face { font-family: "ReportPretendard"; font-weight: 400; src: url("{{ font_dir }}/Pretendard-Regular.ttf"); }
+@font-face { font-family: "ReportPretendard"; font-weight: 600; src: url("{{ font_dir }}/Pretendard-SemiBold.ttf"); }
+@font-face { font-family: "ReportPretendard"; font-weight: 700; src: url("{{ font_dir }}/Pretendard-Bold.ttf"); }
+
+/* 루키즈 로고에서 뽑은 색: 주황 #ED742E, 빨강 #E2312D (+ 중립 회색 #727171)
+   역할 분담: 주황 = 레이아웃(선, 띠, 강조 막대), 회색 = 보조 글씨, 빨강 = 꼭 봐야 하는 글씨만 */
+:root {
+  --orange: #ED742E;
+  --orange-ink: #B9601C;   /* 주황 글씨용. 브랜드 주황은 흰 배경 위 작은 글씨로 읽기 어려워서 한 톤 진하게 */
+  --orange-tint: #FBEFE4;
+  --red: #E2312D;
+  --gray: #727171;
+  --charcoal: #2E2F31;
+  --text: #3A3B3D;
+  --line: #DCDCDC;
+  --tint: #F3F3F3;
+  --risk: {{ risk.color }};
+}
+
+html {
+  font-family: "ReportPretendard", "Apple SD Gothic Neo", "Noto Sans CJK KR", sans-serif;
+  color: var(--text);
+  word-break: keep-all;          /* 브라우저 미리보기용. PDF 제목은 kw 필터가 처리 */
+  overflow-wrap: break-word;
+  font-feature-settings: "calt" 0, "clig" 0;   /* 숫자·하이픈 대체 글리프를 쓰지 않음 (뷰어 호환성) */
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.nw { white-space: nowrap; }
+
+/* 위험도: 상 = 빨강, 중 = 주황, 하 = 회색 */
+.sev {
+  display: inline-block;
+  min-width: 1.7em;
+  text-align: center;
+  font-weight: 700;
+  border: 1.2px solid currentColor;
+  border-radius: 3px;
+  line-height: 1.45;
+}
+.sev-h { color: var(--red); }
+.sev-m { color: var(--orange-ink); }
+.sev-l { color: var(--gray); }
+
+.review {
+  display: inline-block;
+  font-size: .78em;
+  font-weight: 600;
+  padding: 0 .4em;
+  border-radius: 3px;
+  vertical-align: .08em;
+}
+.review.no  { color: var(--orange-ink); background: var(--orange-tint); }
+.review.yes { color: var(--gray); background: var(--tint); }
+
+/* 사례 등급 칩: 동일 결함 / 같은 유형 / 관련 통제. 강조색 없이 회색 (판단 근거 표시용) */
+.lvl {
+  display: inline-block;
+  font-size: .78em;
+  font-weight: 600;
+  padding: 0 .4em;
+  margin-left: .3em;
+  border-radius: 3px;
+  vertical-align: .08em;
+  color: var(--gray);
+  background: var(--tint);
+  white-space: nowrap;
+}
+
+pre, code {
+  font-family: Menlo, "SFMono-Regular", Consolas, "DejaVu Sans Mono", "ReportPretendard", monospace;
+}
+
+/* 머리글 로고 (running element: 표지 빼고 매 페이지 반복) */
+.logo-run { position: running(logo); }
