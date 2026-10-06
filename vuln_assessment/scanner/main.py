@@ -2,6 +2,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+import webbrowser
 
 import requests
 
@@ -146,7 +147,8 @@ if __name__ == "__main__":
 
     print(f"\n스캐너 결과 저장 완료: {output_path}")
 
-        # 저장된 스캐너 결과를 법률 분석 모듈에 전달
+
+    # 저장된 스캐너 결과를 법률 분석 모듈에 전달
     legal_dir = Path(__file__).resolve().parent.parent / "legal_module"
     legal_output_path = output_dir / "legal_result.json"
 
@@ -171,3 +173,42 @@ if __name__ == "__main__":
     )
 
     print(f"\n법률 분석 결과 저장 완료: {legal_output_path}")
+
+
+    # 법률 분석 결과를 보고서 생성 모듈에 전달
+    report_dir = Path(__file__).resolve().parent.parent / "report_engine"
+
+    print("\n===== 보고서 생성 시작 =====")
+
+    subprocess.run(
+        [
+            sys.executable,
+            "engine.py",
+            "--scan",
+            str(legal_output_path),
+        ],
+        cwd=report_dir,
+        check=True,
+    )
+
+    print("\n보고서 생성 완료")
+
+
+    # 이번 실행의 scan_id 확인
+    legal_data = json.loads(
+        legal_output_path.read_text(encoding="utf-8")
+    )
+    scan_id = legal_data["scan_id"]
+
+    # 생성된 보고서 경로
+    report_output_dir = report_dir / "out" / scan_id
+
+    exec_pdf = report_output_dir / "exec_report.pdf"
+    tech_pdf = report_output_dir / "tech_report.pdf"
+
+    # 생성된 PDF 자동 열기
+    if exec_pdf.exists():
+        webbrowser.open(exec_pdf.resolve().as_uri())
+
+    if tech_pdf.exists():
+        webbrowser.open(tech_pdf.resolve().as_uri())
