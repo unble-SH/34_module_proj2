@@ -208,6 +208,27 @@ class BuilderTest(unittest.TestCase):
         out = builder.build_finding(finding(asset=None), 0, 'S', self.sel('2.5.4'), None, ISMSP, LAWS)
         self.assertEqual(out['finding_id'], 'S-W-01-A01')
 
+    def test_flag_inconsistencies(self):
+        def mk(fid, crits, laws):
+            return {"finding_id": fid, "item_id": fid, "title": "중요 정보 마스킹 미흡", "status": "취약",
+                    "isms_p": [{"criterion_id": c} for c in crits],
+                    "violated_laws": [{"law_code": l, "paragraph": p} for l, p in laws]}
+        a = mk("A", ["2.6.3"], [("PIPA-29", None), ("SAFE-12", "제1항")])
+        b = mk("B", ["2.6.3"], [("PIPA-29", None), ("SAFE-12", "제1항")])
+        c = mk("C", ["2.6.3"], [])
+        good = {"finding_id": "G", "item_id": "G", "title": "중요 정보 마스킹 미흡", "status": "양호", "isms_p": [], "violated_laws": []}
+        self.assertEqual(builder.flag_inconsistencies([a, b, good]), 0)        # 동일 -> 표시 없음, 양호는 비교 제외
+        self.assertNotIn('review_note', a)
+        self.assertEqual(builder.flag_inconsistencies([a, b, c]), 3)          # 하나가 다르면 셋 다 표시 (서로 비교 대상이 있으므로)
+        self.assertIn('판단 불일치', c['review_note'])
+        self.assertIn('A: 기준', c['review_note'])
+        self.assertIn('SAFE-12(제1항)', c['review_note'])
+
+    def test_criteria_loaded_into_prompts(self):
+        from module3.mapper import criteria_block, load_criteria
+        self.assertIn('B1.', load_criteria())
+        self.assertIn('판단 기준', criteria_block())
+
     def test_references(self):
         refs = builder.build_references(LAWS)
         self.assertEqual([r['ref_id'] for r in refs], ['PIPA-21445', 'SAFE-2026-9', 'ISMSP-2023.11'])
@@ -311,6 +332,20 @@ class MapperTest(unittest.TestCase):
         self.mapper.prompt_tokens, self.mapper.cached_tokens, self.mapper.completion_tokens = 1_000_000, 500_000, 100_000
         self.assertAlmostEqual(self.mapper.cost_estimate(), 0.5 * 0.40 + 0.5 * 0.10 + 0.1 * 1.60, places=5)
         self.assertIsNone(Mapper(ISMSP, model='unknown-model', cache_dir=Path(self.tmp.name)).cost_estimate())
+
+
+class LoadInputTest(unittest.TestCase):
+    def test_python_literal_fallback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p = Path(tmp) / 'printed.txt'
+            p.write_text("[{'path': 'http://localhost:5000/login', 'content': ['x'], 'category': '주석 내 정보 누출', "
+                         "'result': 'vulnerable', 'severity': 'high', 'reason': 'r'}]", encoding='utf-8')
+            with mock.patch.object(main, 'log', lambda m: None):
+                data = main.load_input(p)
+            self.assertEqual(data[0]['category'], '주석 내 정보 누출')
+            p.write_text("not json at all", encoding='utf-8')
+            with self.assertRaises(SystemExit):
+                main.load_input(p)
 
 
 class AdapterTest(unittest.TestCase):
