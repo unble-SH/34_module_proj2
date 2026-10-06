@@ -223,7 +223,7 @@ def check_vuln_pwd(url):
     if is_vuln == None:
         print("비밀번호 외의 문제로 회원가입 불가")
         return result
-    
+
     if is_vuln:
         data = "id:testuser password:1234"
         result.append(make_format(register_url, data, "낮은 복잡도의 비밀번호 정책", "vulnerable", "high", reason_format["vuln_pwd_register"]))

@@ -50,9 +50,9 @@ comment_patterns = { # 주석 내 정보 확인 패턴
 
 info_patterns = {
         "account_number": r"\b\d{3,6}[- ]?\d{2,6}[- ]?\d{2,8}\b", # 계좌 번호 패턴,
-     
+
         "card_number": r"\b(?:\d{4}[- ]?){3}\d{4}\b", # 카드 번호 패턴,
-     
+
         "resident_registration_number": r"\b\d{6}-\d{7}\b" # 주민등록번호 패턴
 }
 
@@ -80,7 +80,7 @@ class ResponseFormat(BaseModel):
     category: Literal["주석 내 정보 누출", "중요 정보 마스킹 미흡", "에러페이지 정보 노출"] = Field(description="발견된 취약점 유형")
     result: Literal["vulnerable", "pass", "unknown"] = Field(description="노출된 정보를 취약, 양호, 판단 불가로 구분")
     severity: Literal["high", "medium", "low"] = Field(description="""
-                                                노출된 정보의 위험성. 
+                                                노출된 정보의 위험성.
                                                 취약하지 않은 정보거나 제대로 마스킹처리 되어있는 경우, result가 pass인 경우 low,
                                                 중요 정보가 아닌 개인정보가 노출되거나 다른 취약점과 연계되어 위험할 수 있는 정보이거나 result가 unknown이면 medium,
                                                 중요 정보가 마스킹 없이 노출되거나 즉시 취약점이 될 수 있는 정보가 노출되면 high
@@ -133,7 +133,7 @@ def check_comment(session, url, client):
 
     if not results:
         return None
-    
+
     # response = client.responses.parse(
     #     model="gpt-5.5",
     #     input=[
@@ -144,7 +144,7 @@ def check_comment(session, url, client):
     #             "comment"는 주석의 내용, "types"는 추측되는 해당 내용의 유형
     #             실제로 중요하거나 민감한 정보가 주석에 포함되었는지 판단할 것
     #             확실한 근거가 없다면 unknown
-    #             """ 
+    #             """
     #         },
     #         {
     #             "role" : "user",
@@ -264,7 +264,7 @@ def check_personal_info(session, url, client):
     #             5. 중요 정보가 마스킹 없이 노출된다면 고위험 취약점으로 판단
     #             6. 중요 정보 없이 개인정보만 노출되어있으면 양호한 것으로 판단
     #             7. 확실한 근거가 없다면 unknown
-    #             """ 
+    #             """
     #         },
     #         {
     #             "role" : "user",
@@ -321,7 +321,7 @@ def check_leak_info(url, client):
     for path in info_candidate:
         result = check_comment(session, path, client) # 각 경로의 주석 확인
         if result:
-            results.append(result) 
+            results.append(result)
 
         result = check_personal_info(session, path, client) # 각 경로의 개인정보 노출 확인
         if result:
