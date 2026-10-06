@@ -215,6 +215,37 @@ def build_finding(finding: dict, idx: int, scan_id: str, selection: list, llm_no
     return out
 
 
+def flag_inconsistencies(findings: list) -> int:
+    """같은 유형(title)·같은 판정인 항목끼리 ISMS-P 기준·조문 집합이 다르면 review_note에 표시한다. -> 표시한 항목 수
+
+    같은 상태를 실행마다 다르게 판단하는 문제(팀 이슈 4번)를 사람이 바로 보게 하는 장치. 결과를 바꾸지는 않는다."""
+    groups = {}
+    for f in findings:
+        if f['status'] not in MAPPED_STATUSES:
+            continue
+        groups.setdefault((f['title'], f['status']), []).append(f)
+    flagged = 0
+    for (title, _), items in groups.items():
+        if len(items) < 2:
+            continue
+        sig = {f['finding_id']: (tuple(sorted(c['criterion_id'] for c in f['isms_p'])),
+                                 tuple(sorted(f"{v['law_code']}{'(' + v['paragraph'] + ')' if v['paragraph'] else ''}"
+                                              for v in f['violated_laws'])))
+               for f in items}
+        if len(set(sig.values())) == 1:
+            continue
+        for f in items:
+            others = [g for g in items if g is not f and sig[g['finding_id']] != sig[f['finding_id']]]
+            if not others:
+                continue
+            desc = '; '.join(f"{g['item_id']}: 기준 {list(sig[g['finding_id']][0]) or '없음'}, 조문 {list(sig[g['finding_id']][1]) or '없음'}"
+                             for g in others)
+            note = f"같은 유형('{title}') 항목과 판단 불일치 → 사람이 확인 필요. 비교: {desc}"
+            f['review_note'] = (f['review_note'] + ' / ' + note) if f.get('review_note') else note
+            flagged += 1
+    return flagged
+
+
 def build_references(laws: dict) -> list:
     refs = [law.reference() for law in laws.values()]
     refs.append(dict(ISMSP_REF))

@@ -74,8 +74,9 @@ PRICE_PER_1M = {
     "gpt-4o": (2.50, 1.25, 10.00),
     "gpt-4o-mini": (0.15, 0.075, 0.60),
 }
-PROMPT_VERSION = "v3"          # 1차: 취약점 -> ISMS-P 기준 선택 프롬프트 버전
-NARROW_PROMPT_VERSION = "n2"   # 2차: 매핑된 조문 안에서 해당 항 선택 프롬프트 버전 (n2: 제29조 포괄 조문 유지 규칙 추가)
+CRITERIA_FILE = MODULE_DIR / "criteria.md"   # 팀 공통 판단 기준. 1차·2차 프롬프트에 그대로 들어간다
+PROMPT_VERSION = "v4"          # 1차: 취약점 -> ISMS-P 기준 선택 프롬프트 버전 (v4: 판단 기준 criteria.md 포함)
+NARROW_PROMPT_VERSION = "n3"   # 2차: 매핑된 조문 안에서 해당 항 선택 프롬프트 버전 (n3: 판단 기준 criteria.md 포함)
 
 # 상위 의무 조문: 값에 적힌 법령 키의 조문이 하나라도 해당하면, LLM이 빼더라도 유지한다.
 # 고시(SAFE)는 개인정보 보호법 제29조를 구체화한 기준이라 고시 위반은 곧 제29조 위반이다.

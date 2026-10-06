@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 from pydantic import ValidationError
 
 from .adapters import looks_like_scanner_output, to_scan_input
-from .builder import MAPPED_STATUSES, build_finding, build_references
+from .builder import MAPPED_STATUSES, build_finding, build_references, flag_inconsistencies
 from .config import ENV_FILE, MODULE_DIR, NARROW_PROMPT_VERSION, OPENAI_MODEL, PROMPT_VERSION, SCHEMA_VERSION
 from .ismsp_loader import load_ismsp
 from .law_loader import load_all_laws, norm_title
@@ -25,6 +25,21 @@ def log(msg: str):
     print(msg, flush=True)
 
 
+def load_input(path: Path):
+    """JSON 파일을 읽는다. 스캐너의 print() 출력을 그대로 저장한 파이썬 리터럴('…' 따옴표)도 받아 준다."""
+    text = path.read_text(encoding='utf-8')
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as je:
+        import ast
+        try:
+            data = ast.literal_eval(text.strip())
+        except (ValueError, SyntaxError):
+            raise SystemExit(f"입력 파일을 읽을 수 없음 ({path.name}): JSON도 파이썬 리터럴도 아님. {je}")
+        log("입력이 JSON이 아니라 파이썬 print 형식이라 변환해서 읽음 (가능하면 json.dump로 저장해 주세요)")
+        return data
+
+
 def run(input_path: Path, output_path: Path, model: str, offline: bool, use_cache: bool,
         target_url: str = "", scan_id: str = None) -> dict:
     load_dotenv(ENV_FILE)
@@ -32,7 +47,7 @@ def run(input_path: Path, output_path: Path, model: str, offline: bool, use_cach
 
     laws = load_all_laws()
     ismsp = load_ismsp()
-    data = json.loads(input_path.read_text(encoding='utf-8'))
+    data = load_input(input_path)
     if looks_like_scanner_output(data):       # 스캐너(ResponseFormat) 형식이면 ScanInput으로 변환
         kw = {k: v for k, v in (('target_url', target_url), ('scan_id', scan_id)) if v}
         data = to_scan_input(data, **kw)
@@ -63,6 +78,10 @@ def run(input_path: Path, output_path: Path, model: str, offline: bool, use_cach
                                  for v in built['violated_laws']) or '없음'
             log(f"    조문: {laws_txt}" + ("  (제외 있음, review_note 참고)" if '제외한 조문' in built.get('review_note', '') else ''))
         findings_out.append(built)
+
+    flagged = flag_inconsistencies(findings_out)
+    if flagged:
+        log(f"! 같은 유형 항목 간 판단 불일치 {flagged}건 → review_note 표시")
 
     out = {
         "schema_version": SCHEMA_VERSION,
