@@ -27,6 +27,9 @@ API 키는 `.env`의 `OPENAI_API_KEY`로 읽는다. 팀 공용 위치인 `vuln_a
    `path, content[], category, result(vulnerable/pass/unknown), severity(high/medium/low), reason`.
    목록만 넘겨도 되고 `{"scan_id", "target_url", "results": [...]}`로 감싸도 된다. 자동으로 감지해 finding 형식으로 바꾼다
    (vulnerable→취약, pass→양호, unknown→수동확인 / high→상, medium→중, low→하 / evidence = path + reason + content).
+   `item_id`는 category 이름으로 만들며(adapters.py의 CATEGORY_CODES), 앞부분은 보고서 모듈 카탈로그의 KISA 코드와 같다:
+   IL 정보 누출, BF 약한 비밀번호 정책, IA 불충분한 인증 절차, IN 불충분한 권한 검증, PR 취약한 비밀번호 복구 절차. 모르는 category는 W-01처럼 나간다.
+   스캐너에 새 category를 추가하면 CATEGORY_CODES에도 한 줄 추가할 것.
 
 ```bash
 python -m module3 run module3/samples/input_scanner_format.json -o out.json --target-url http://localhost:5000/
@@ -39,7 +42,7 @@ scan_input = from_scanner_results([r.model_dump() for r in results], target_url=
 ```
 
 ```bash
-# 단위 테스트 (LLM은 가짜 응답으로 대체, API 키·비용 없음): 로더, 조문 매핑, 캐시, 상태 처리, 실패 복구 등 22건
+# 단위 테스트 (LLM은 가짜 응답으로 대체, API 키·비용 없음): 로더, 조문 매핑, 캐시, 상태 처리, 실패 복구, 스캐너 형식 변환 등 38건
 python -m unittest module3.tests.test_module3 -v
 ```
 
