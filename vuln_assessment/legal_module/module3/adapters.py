@@ -15,15 +15,30 @@ RESULT_MAP = {"vulnerable": "취약", "pass": "양호", "unknown": "수동확인
 SEVERITY_MAP = {"high": "상", "medium": "중", "low": "하"}
 
 # 스캐너의 category -> 항목 코드. 모르는 category는 'W' + 순번으로 만든다.
+# 코드 앞부분은 보고서 모듈(report_engine/data/item_catalog.json)의 KISA 항목 코드와 맞춘다:
+#   IL 정보 누출, BF 약한 비밀번호 정책, IA 불충분한 인증 절차, IN 불충분한 권한 검증, PR 취약한 비밀번호 복구 절차.
+# 보고서 모듈은 item_id의 '-' 앞부분으로 판단 기준·조치 방법을 찾으므로 여기만 맞으면 된다.
 CATEGORY_CODES = {
+    # 정보 누출 (leak_info.py)
+    "정보 누출": "IL",
     "주석 내 정보 누출": "IL-COMMENT",
     "중요 정보 마스킹 미흡": "IL-MASKING",
     "에러페이지 정보 노출": "IL-ERRORPAGE",
-    "정보 누출": "IL",
-    "약한 비밀번호 정책": "WPW",
-    "불충분한 권한 검증": "IDOR",
-    "취약한 비밀번호 복구 절차": "PWRECOVERY",
-    "불충분한 인증 절차": "AUTH",
+    "에러 페이지 정보 누출": "IL-ERRORPAGE",
+    # 약한 비밀번호 정책 (check_pwd_rule.py)
+    "약한 비밀번호 정책": "BF",
+    "유추 가능한 비밀번호": "BF-GUESS",
+    "낮은 복잡도의 비밀번호 정책": "BF-POLICY",
+    # 불충분한 인증 절차 (insufficient_auth.py)
+    "불충분한 인증 절차": "IA",
+    # 불충분한 권한 검증 (access_control.py)
+    "불충분한 권한 검증": "IN",
+    "비인증 접근": "IN-UNAUTH",
+    "수직 권한 상승": "IN-VERTICAL",
+    "타인 문의글 열람": "IN-READ",
+    "타인 문의글 댓글 작성": "IN-COMMENT",
+    # 취약한 비밀번호 복구 절차 (password_recovery.py)
+    "취약한 비밀번호 복구 절차": "PR",
 }
 MAX_CONTENT_ITEMS = 5
 MAX_CONTENT_LEN = 100

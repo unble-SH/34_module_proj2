@@ -373,6 +373,33 @@ class AdapterTest(unittest.TestCase):
         self.assertTrue(conv2['scan_id'].startswith('SCAN-'))
         self.assertEqual(to_scan_input({"scan_id": "X", "findings": []}), {"scan_id": "X", "findings": []})   # 이미 ScanInput이면 그대로
 
+    def test_scanner_categories_map_to_report_catalog_codes(self):
+        """5개 스캐너가 실제로 내는 category가 전부 등록돼 있고, 코드 앞부분이 보고서 모듈 카탈로그(KISA 코드)와 맞는지."""
+        from module3.adapters import CATEGORY_CODES, from_scanner_results, to_scan_input
+        catalog_prefixes = {'IL', 'BF', 'IA', 'IN', 'PR'}   # report_engine/data/item_catalog.json
+        scanner_categories = {
+            'leak_info.py': ['주석 내 정보 누출', '중요 정보 마스킹 미흡', '에러 페이지 정보 누출'],
+            'check_pwd_rule.py': ['유추 가능한 비밀번호', '낮은 복잡도의 비밀번호 정책'],
+            'insufficient_auth.py': ['불충분한 인증 절차'],
+            'access_control.py': ['비인증 접근', '수직 권한 상승', '타인 문의글 열람', '타인 문의글 댓글 작성'],
+            'password_recovery.py': ['취약한 비밀번호 복구 절차', '에러페이지 정보 노출'],
+        }
+        for scanner, cats in scanner_categories.items():
+            for cat in cats:
+                self.assertIn(cat, CATEGORY_CODES, f'{scanner}의 category {cat!r}가 CATEGORY_CODES에 없음')
+                self.assertIn(CATEGORY_CODES[cat].split('-')[0], catalog_prefixes, f'{cat!r} 코드가 보고서 카탈로그와 안 맞음')
+        # scanner/main.py가 저장하는 형식 {"target", "results", "errors"} 그대로 받는지
+        main_out = {"target": "http://localhost:5000/", "errors": [{"scanner": "x", "error": "e"}],
+                    "results": [{"path": "/inquiry/1", "content": [], "category": "타인 문의글 열람", "result": "vulnerable",
+                                 "severity": "high", "reason": "r", "needs_review": False},
+                                {"path": "/login", "content": [], "category": "유추 가능한 비밀번호", "result": "vulnerable",
+                                 "severity": "high", "reason": "r"}]}
+        conv = to_scan_input(main_out, target_url=main_out['target'])
+        ScanInput.model_validate(conv)
+        self.assertEqual([f['item_id'] for f in conv['findings']], ['IN-READ-01', 'BF-GUESS-01'])
+        self.assertEqual(conv['findings'][0]['asset']['name'], '웹 서비스 (localhost:5000)')
+        self.assertEqual(from_scanner_results([{"category": "불충분한 인증 절차", "result": "pass", "severity": "low"}])['findings'][0]['item_id'], 'IA-01')
+
 
 class SchemaTest(unittest.TestCase):
     def test_sample_files_match_contracts(self):
